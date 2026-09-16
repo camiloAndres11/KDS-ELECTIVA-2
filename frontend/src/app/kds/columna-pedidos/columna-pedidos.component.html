@@ -1,0 +1,18 @@
+<section class="columna">
+  <header class="columna-encabezado">
+    <h2>{{ titulo }}</h2>
+    <span class="contador tabular">{{ pedidos.length }}</span>
+  </header>
+
+  <div class="lista">
+    @for (pedido of pedidos; track pedido.id) {
+      <app-tarjeta-pedido
+        [pedido]="pedido"
+        [accion]="accion"
+        (cambiarEstado)="cambiarEstado.emit({ order: pedido, status: $event })"
+      ></app-tarjeta-pedido>
+    } @empty {
+      <p class="vacio">Sin pedidos</p>
+    }
+  </div>
+</section>

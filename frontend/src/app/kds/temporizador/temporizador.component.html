@@ -1,0 +1,6 @@
+<span class="temporizador tabular" [class]="urgencia()" [attr.aria-label]="'Tiempo transcurrido ' + etiqueta()">
+  @if (urgencia() === 'critical') {
+    <span class="punto" aria-hidden="true"></span>
+  }
+  {{ etiqueta() }}
+</span>

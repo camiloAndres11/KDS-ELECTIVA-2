@@ -1,0 +1,11 @@
+<header class="encabezado-kds">
+  <h1>{{ nombreSucursal }}</h1>
+
+  <div class="estado">
+    <span class="reloj tabular">{{ hora() }}</span>
+    <span class="conexion" [class.activa]="conectado">
+      <span class="punto" aria-hidden="true"></span>
+      {{ conectado ? 'Conectado' : 'Reconectando…' }}
+    </span>
+  </div>
+</header>

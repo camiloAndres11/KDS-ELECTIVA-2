@@ -1,0 +1,26 @@
+.temporizador {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-timer);
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  transition: color var(--dur-base) var(--ease-out);
+}
+
+.temporizador.warning {
+  color: var(--color-status-warning);
+}
+
+.temporizador.critical {
+  color: var(--color-status-critical);
+}
+
+.punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-status-critical);
+  animation: pulse-critical 1.1s var(--ease-in-out) infinite;
+}

@@ -1,0 +1,35 @@
+<article class="tarjeta" [class.vip]="pedido.priority === 'VIP'">
+  <header class="encabezado">
+    <div class="identidad">
+      <span class="codigo">{{ pedido.displayCode }}</span>
+      <span class="canal">{{ canalEtiqueta }}</span>
+      @if (pedido.priority !== 'NORMAL') {
+        <span class="prioridad" [class.vip]="pedido.priority === 'VIP'">{{ pedido.priority }}</span>
+      }
+    </div>
+    <app-temporizador [desde]="pedido.createdAt"></app-temporizador>
+  </header>
+
+  @if (pedido.customerName) {
+    <p class="cliente">{{ pedido.customerName }}</p>
+  }
+
+  <ul class="items">
+    @for (item of pedido.items; track item.id) {
+      <li>
+        <span class="cantidad">{{ item.quantity }}×</span> {{ item.productName }}
+        @if (item.notes) {
+          <small class="nota">{{ item.notes }}</small>
+        }
+      </li>
+    }
+  </ul>
+
+  @if (pedido.notes) {
+    <p class="notas-generales">{{ pedido.notes }}</p>
+  }
+
+  <button type="button" class="accion" (click)="cambiarEstado.emit(accion.siguienteEstado)">
+    {{ accion.etiqueta }}
+  </button>
+</article>

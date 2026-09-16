@@ -1,0 +1,24 @@
+<app-encabezado-kds [nombreSucursal]="nombreSucursal" [conectado]="conectado"></app-encabezado-kds>
+
+<main class="tablero">
+  <app-columna-pedidos
+    titulo="Pendientes"
+    [pedidos]="store.pending()"
+    [accion]="accionPendientes"
+    (cambiarEstado)="onCambiarEstado($event)"
+  ></app-columna-pedidos>
+
+  <app-columna-pedidos
+    titulo="En preparación"
+    [pedidos]="store.inPreparation()"
+    [accion]="accionEnPreparacion"
+    (cambiarEstado)="onCambiarEstado($event)"
+  ></app-columna-pedidos>
+
+  <app-columna-pedidos
+    titulo="Listos"
+    [pedidos]="store.ready()"
+    [accion]="accionListos"
+    (cambiarEstado)="onCambiarEstado($event)"
+  ></app-columna-pedidos>
+</main>

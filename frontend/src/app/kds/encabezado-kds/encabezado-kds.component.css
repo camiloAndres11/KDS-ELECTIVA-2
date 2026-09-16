@@ -1,0 +1,49 @@
+.encabezado-kds {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.encabezado-kds h1 {
+  font-size: var(--text-2xl);
+  letter-spacing: -0.01em;
+}
+
+.estado {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+.reloj {
+  font-size: var(--text-lg);
+  color: var(--color-ink-muted);
+}
+
+.conexion {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-ink-faint);
+}
+
+.punto {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-status-critical);
+  transition: background var(--dur-base) var(--ease-out);
+}
+
+.conexion.activa .punto {
+  background: var(--color-status-ok);
+}
+
+.conexion.activa {
+  color: var(--color-ink-muted);
+}

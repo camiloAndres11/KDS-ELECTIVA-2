@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PREPARATION
+  READY
+  DISPATCHED
+  CANCELLED
+}
+
+enum OrderPriority {
+  NORMAL
+  HIGH
+  VIP
+}
+
+enum ChannelType {
+  DINE_IN
+  TAKEAWAY
+  DELIVERY
+}
+
+model Order {
+  id           String        @id @default(uuid())
+  displayCode  String        @unique @map("display_code") @db.VarChar(10)
+  channel      ChannelType
+  priority     OrderPriority @default(NORMAL)
+  status       OrderStatus   @default(PENDING)
+  customerName String?       @map("customer_name") @db.VarChar(100)
+  notes        String?
+  version      Int           @default(1)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  startedAt    DateTime?     @map("started_at")
+  readyAt      DateTime?     @map("ready_at")
+  dispatchedAt DateTime?     @map("dispatched_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  items        OrderItem[]
+  auditLogs    AuditLog[]
+
+  @@index([status, priority, createdAt], name: "idx_orders_kds_active")
+  @@map("orders")
+}
+
+model OrderItem {
+  id          String  @id @default(uuid())
+  orderId     String  @map("order_id")
+  productName String  @map("product_name") @db.VarChar(150)
+  quantity    Int
+  notes       String?
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  userId        String?  @map("user_id")
+  orderId       String   @map("order_id")
+  action        String   @db.VarChar(50)
+  previousState String?  @map("previous_state") @db.VarChar(50)
+  newState      String?  @map("new_state") @db.VarChar(50)
+  createdAt     DateTime @default(now()) @map("created_at")
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
