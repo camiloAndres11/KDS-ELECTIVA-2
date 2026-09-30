@@ -7,16 +7,20 @@ contrasenas, los roles y el cliente que usa nuestro servicio.
 
 ## Como se usa
 
-No hay que hacer nada: `iniciar-keycloak.bat` (en la carpeta anterior) ya le
-pasa `--import-realm` a Keycloak, asi que al arrancar el realm aparece solo.
+No hay que hacer nada a mano: `iniciar-keycloak.bat` (en la carpeta anterior)
+copia este archivo a `keycloak-26.1.4\data\import\kds-realm.json` y arranca
+Keycloak con `--import-realm`, asi que el realm aparece solo.
 
-Si prefieres importarlo a mano desde el navegador:
+Ojo con un detalle de Keycloak: **solo importa los realms al arrancar**, y
+solo los que **todavia no existen**. Si el realm `kds` ya esta en la base de
+datos, se lo salta aunque el archivo haya cambiado.
+
+## Si prefieres importarlo desde el navegador
 
 1. Arranca Keycloak.
 2. Entra en <http://localhost:8080> con `admin` / `admin`.
-3. Arriba a la izquierda, elige **master** y pulsa **Add realm**...
-   No: para reemplazar uno existente, ve a `kds-realm.json` y usa
-   **Partial import** en el realm `kds`.
+3. Arriba a la izquierda elige el realm **master** y pulsa **Add realm**.
+4. En **Settings**, en la parte de **Realm import**, sube `kds-realm.json`.
 
 ## Que trae
 

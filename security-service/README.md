@@ -229,9 +229,11 @@ El realm es como una "base de datos de usuarios". Al arrancar, Keycloak
 importa solo el archivo `keycloak/kds-realm.json`, que ya trae los cuatro
 usuarios de prueba y los roles listos.
 
-> **Ojo:** Keycloak guarda los datos en la carpeta `data/` que tiene al lado.
-> Si borras esa carpeta, usuarios y roles desaparecen y se vuelven a crear al
-> arrancar.
+> **Ojo:** Keycloak guarda todo (usuarios, roles y su base de datos interna)
+> en la carpeta `data/` que esta **dentro de la carpeta de Keycloak**, o sea
+> `keycloak-26.1.4\data\`. `iniciar-keycloak.bat` copia ahi tu
+> `kds-realm.json` cada vez que arranca. Si borras esa carpeta, usuarios y
+> roles desaparecen y se vuelven a crear al arrancar de nuevo.
 
 ### Paso 7 - Levantar el servicio
 
@@ -539,9 +541,15 @@ y vuelve a importar el realm (borrando antes la carpeta `data` de Keycloak).
 
 ### Cambie el realm y no se ve
 
-Keycloak **no** reimporta un realm que ya existe. Tienes que borrar la
-carpeta `data/` de Keycloak y arrancarlo otra vez, o cambiar el realm desde la
-pantalla de administracion.
+Keycloak **no** reimporta un realm que ya existe, aunque cambies el archivo
+`kds-realm.json`. Solo mira los realms al arrancar, y si el nombre ya existe se
+lo salta. Para que los cambios se vean:
+
+1. Detén Keycloak (Ctrl+C).
+2. Borra la carpeta `keycloak-26.1.4\data`.
+3. Arranca otra vez.
+
+O cambia los usuarios desde la pantalla de administración.
 
 ### `pip: command not found` (Linux/Mac)
 
