@@ -1,11 +1,25 @@
 <header class="encabezado-kds">
-  <h1>{{ nombreSucursal }}</h1>
+  <h1>{{ nombreEmpresa }}</h1>
 
   <div class="estado">
+    @if (puedeSimular()) {
+      <a routerLink="/kds/pos" class="pos-enlace">Simulador POS</a>
+    }
+    @if (usuario(); as sesion) {
+      <span class="usuario" [title]="roles()">{{ sesion.username }}</span>
+      <button type="button" class="salir" (click)="salir()">Salir</button>
+    }
     <span class="reloj tabular">{{ hora() }}</span>
-    <span class="conexion" [class.activa]="conectado">
-      <span class="punto" aria-hidden="true"></span>
-      {{ conectado ? 'Conectado' : 'Reconectando…' }}
-    </span>
+    @if (tiempoRealActivo) {
+      <span class="conexion" [class.activa]="conectado">
+        <span class="punto" aria-hidden="true"></span>
+        {{ conectado ? 'Conectado' : 'Reconectando…' }}
+      </span>
+    } @else {
+      <span class="conexion activa">
+        <span class="punto" aria-hidden="true"></span>
+        Actualización automática (HTTP)
+      </span>
+    }
   </div>
 </header>

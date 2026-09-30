@@ -1,6 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { KdsService } from './kds.service';
 import { SocketService } from '../core/realtime/socket.service';
+import { environment } from '../../environments/environment';
 import type { Order, OrderPriority, OrderStatus } from '../interfaces/order.interface';
 import type { PriorityChangedEvent, StatusChangedEvent } from '../interfaces/ws-event.interface';
 
@@ -15,26 +16,38 @@ export class KdsStoreService {
   readonly inPreparation = computed(() => this.byStatus('IN_PREPARATION'));
   readonly ready = computed(() => this.byStatus('READY'));
 
+  private inicializado = false;
+  private intervalId?: ReturnType<typeof setInterval>;
+
   constructor(
     private api: KdsService,
     private socket: SocketService,
   ) {}
 
   init(): void {
-    this.socket.connect();
-    this.socket.on<void>('connect').subscribe(() => this.reload());
-    this.socket.on<Order>('order:created').subscribe((order) => {
-      this._orders.update((list) => [order, ...list]);
-    });
-    this.socket.on<StatusChangedEvent>('order:status_changed').subscribe((event) => {
-      this._orders.update((list) =>
-        list.map((o) => (o.id === event.orderId ? { ...o, status: event.newStatus, version: event.version } : o)),
-      );
-    });
-    this.socket.on<PriorityChangedEvent>('order:priority_changed').subscribe((event) => {
-      this._orders.update((list) => list.map((o) => (o.id === event.orderId ? { ...o, priority: event.priority } : o)));
-    });
+    if (this.inicializado) {
+      return;
+    }
+    this.inicializado = true;
+
+    if (environment.realtimeEnabled) {
+      this.socket.connect();
+      this.socket.on<void>('connect').subscribe(() => this.reload());
+      this.socket.on<Order>('order:created').subscribe((order) => {
+        this._orders.update((list) => [order, ...list]);
+      });
+      this.socket.on<StatusChangedEvent>('order:status_changed').subscribe((event) => {
+        this._orders.update((list) =>
+          list.map((o) => (o.id === event.orderId ? { ...o, status: event.newStatus, version: event.version } : o)),
+        );
+      });
+      this.socket.on<PriorityChangedEvent>('order:priority_changed').subscribe((event) => {
+        this._orders.update((list) => list.map((o) => (o.id === event.orderId ? { ...o, priority: event.priority } : o)));
+      });
+    }
+
     this.reload();
+    this.intervalId = setInterval(() => this.reload(), environment.pollingMs);
   }
 
   reload(): void {
@@ -43,8 +56,20 @@ export class KdsStoreService {
 
   changeStatus(order: Order, status: OrderStatus): void {
     this.api.changeStatus(order.id, status, order.version).subscribe({
+      next: (actualizado) => this.aplicarActualizacion(actualizado),
       error: () => this.reload(),
     });
+  }
+
+  changePriority(order: Order, priority: OrderPriority): void {
+    this.api.changePriority(order.id, priority, order.version).subscribe({
+      next: (actualizado) => this.aplicarActualizacion(actualizado),
+      error: () => this.reload(),
+    });
+  }
+
+  private aplicarActualizacion(actualizado: Order): void {
+    this._orders.update((list) => list.map((o) => (o.id === actualizado.id ? actualizado : o)));
   }
 
   private byStatus(status: OrderStatus): Order[] {

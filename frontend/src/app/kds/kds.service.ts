@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import type { Order, OrderPriority, OrderStatus } from '../interfaces/order.interface';
+import type { CreateOrderInput, Order, OrderPriority, OrderStatus } from '../interfaces/order.interface';
 
 @Injectable({ providedIn: 'root' })
 export class KdsService {
@@ -20,5 +20,9 @@ export class KdsService {
 
   changePriority(id: string, priority: OrderPriority, version: number): Observable<Order> {
     return this.http.patch<Order>(`${this.api}/kitchen/orders/${id}/priority`, { priority, version });
+  }
+
+  createOrder(input: CreateOrderInput): Observable<Order> {
+    return this.http.post<Order>(`${this.api}/orders`, input);
   }
 }

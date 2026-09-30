@@ -1,10 +1,10 @@
 import { Component, OnInit } from '@angular/core';
-import { TableroKdsComponent } from './kds/tablero-kds/tablero-kds.component';
+import { RouterOutlet } from '@angular/router';
 import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
-  imports: [TableroKdsComponent],
+  imports: [RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })

@@ -1,0 +1,84 @@
+<header class="pos-encabezado">
+  <div>
+    <p class="etiqueta">Simulador POS</p>
+    <h1>{{ tenant }}</h1>
+  </div>
+  <a routerLink="/kds" class="volver">← Volver al tablero</a>
+</header>
+
+<main class="pos">
+  <form class="panel" (ngSubmit)="enviar()">
+    <h2>Nuevo pedido</h2>
+
+    <div class="fila">
+      <label>
+        Código (opcional)
+        <input type="text" [(ngModel)]="displayCode" name="displayCode" placeholder="#P-XXXX" maxlength="10" />
+      </label>
+      <label>
+        Canal
+        <select [(ngModel)]="channel" name="channel">
+          <option value="DINE_IN">En local</option>
+          <option value="TAKEAWAY">Para llevar</option>
+          <option value="DELIVERY">Domicilio</option>
+        </select>
+      </label>
+      <label>
+        Prioridad
+        <select [(ngModel)]="priority" name="priority">
+          <option value="NORMAL">Normal</option>
+          <option value="HIGH">Alta</option>
+          <option value="VIP">VIP</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="fila">
+      <label>
+        Cliente (opcional)
+        <input type="text" [(ngModel)]="customerName" name="customerName" maxlength="100" />
+      </label>
+      <label>
+        Notas generales (opcional)
+        <input type="text" [(ngModel)]="notes" name="notes" />
+      </label>
+    </div>
+
+    <section class="items">
+      <h3>Productos</h3>
+      <div class="fila">
+        <input type="text" [(ngModel)]="itemName" name="itemName" placeholder="Producto" class="crecer" />
+        <input type="number" [(ngModel)]="itemQuantity" name="itemQuantity" min="1" class="cantidad" />
+        <input type="text" [(ngModel)]="itemNotes" name="itemNotes" placeholder="Nota (opcional)" class="crecer" />
+        <button type="button" class="secundario" (click)="agregarItem()">Agregar</button>
+      </div>
+
+      @if (items().length > 0) {
+        <ul>
+          @for (item of items(); track $index) {
+            <li>
+              <span>{{ item.quantity }}× {{ item.productName }}</span>
+              @if (item.notes) {
+                <small>{{ item.notes }}</small>
+              }
+              <button type="button" class="quitar" (click)="quitarItem($index)">Quitar</button>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="vacio">Sin productos todavía</p>
+      }
+    </section>
+
+    <button type="submit" class="enviar" [disabled]="enviando()">
+      {{ enviando() ? 'Enviando…' : 'Crear pedido' }}
+    </button>
+
+    @if (mensaje()) {
+      <p class="exito" role="status">{{ mensaje() }}</p>
+    }
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+  </form>
+</main>

@@ -50,16 +50,28 @@
               "extractLicenses": false,
               "sourceMap": true
             },
-            "centro": {
+            "starpizza": {
               "outputHashing": "all",
               "fileReplacements": [
-                { "replace": "src/environments/environment.ts", "with": "src/environments/environment.centro.ts" }
+                { "replace": "src/environments/environment.ts", "with": "src/environments/environment.starpizza.ts" }
               ]
             },
-            "norte": {
+            "delarosepizza": {
               "outputHashing": "all",
               "fileReplacements": [
-                { "replace": "src/environments/environment.ts", "with": "src/environments/environment.norte.ts" }
+                { "replace": "src/environments/environment.ts", "with": "src/environments/environment.delarosepizza.ts" }
+              ]
+            },
+            "starpizza-local": {
+              "outputHashing": "all",
+              "fileReplacements": [
+                { "replace": "src/environments/environment.ts", "with": "src/environments/environment.starpizza.local.ts" }
+              ]
+            },
+            "delarosepizza-local": {
+              "outputHashing": "all",
+              "fileReplacements": [
+                { "replace": "src/environments/environment.ts", "with": "src/environments/environment.delarosepizza.local.ts" }
               ]
             }
           },
@@ -74,11 +86,17 @@
             "development": {
               "buildTarget": "frontend:build:development"
             },
-            "centro": {
-              "buildTarget": "frontend:build:centro"
+            "starpizza": {
+              "buildTarget": "frontend:build:starpizza"
             },
-            "norte": {
-              "buildTarget": "frontend:build:norte"
+            "delarosepizza": {
+              "buildTarget": "frontend:build:delarosepizza"
+            },
+            "starpizza-local": {
+              "buildTarget": "frontend:build:starpizza-local"
+            },
+            "delarosepizza-local": {
+              "buildTarget": "frontend:build:delarosepizza-local"
             }
           },
           "defaultConfiguration": "development"

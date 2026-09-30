@@ -24,3 +24,12 @@ export interface Order {
   dispatchedAt: string | null;
   items: OrderItem[];
 }
+
+export interface CreateOrderInput {
+  displayCode: string;
+  channel: ChannelType;
+  priority?: OrderPriority;
+  customerName?: string | null;
+  notes?: string | null;
+  items: Array<{ productName: string; quantity: number; notes?: string | null }>;
+}

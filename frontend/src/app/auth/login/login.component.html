@@ -1,0 +1,32 @@
+<main class="login">
+  <section class="tarjeta">
+    <header class="encabezado">
+      <p class="etiqueta">Kitchen Display System</p>
+      <h1>{{ tenant }}</h1>
+      <p class="subtitulo">Pantalla de cocina · Inicia sesión para continuar</p>
+    </header>
+
+    @if (proveedor === 'mock') {
+      <form class="formulario" (ngSubmit)="entrar()">
+        <label>
+          Usuario
+          <input type="text" name="username" autocomplete="username" [(ngModel)]="username" required />
+        </label>
+        <label>
+          Contraseña
+          <input type="password" name="password" autocomplete="current-password" [(ngModel)]="password" required />
+        </label>
+        <button type="submit" class="boton-entrar">Entrar</button>
+      </form>
+    } @else {
+      <div class="keycloak">
+        <p>La autenticación está a cargo de Keycloak (reino <strong>{{ realm }}</strong>).</p>
+        <button type="button" class="boton-entrar" (click)="entrar()">Entrar con Keycloak</button>
+      </div>
+    }
+
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+  </section>
+</main>

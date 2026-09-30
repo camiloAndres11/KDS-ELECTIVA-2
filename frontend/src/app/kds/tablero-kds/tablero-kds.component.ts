@@ -13,7 +13,8 @@ import { environment } from '../../../environments/environment';
   styleUrl: './tablero-kds.component.css',
 })
 export class TableroKdsComponent implements OnInit {
-  readonly nombreSucursal = environment.displayName;
+  readonly nombreEmpresa = environment.displayName;
+  readonly tiempoRealActivo = environment.realtimeEnabled;
 
   readonly accionPendientes = { etiqueta: 'Iniciar preparación', siguienteEstado: 'IN_PREPARATION' as const };
   readonly accionEnPreparacion = { etiqueta: 'Marcar listo', siguienteEstado: 'READY' as const };
