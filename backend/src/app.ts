@@ -4,11 +4,14 @@ import type { OrderService } from './services/order.service.js';
 import { ordersRouter } from './routes/orders.routes.js';
 import { kitchenRouter } from './routes/kitchen.routes.js';
 import { errorMiddleware } from './middlewares/error.middleware.js';
+import { authenticate, type TokenVerifier } from './middlewares/auth.middleware.js';
 
 export interface AppOptions {
   tenantId: string;
   corsOrigins: string[];
   getWsClientCount?: () => number;
+  /** Si se omite, la API no exige autenticación. */
+  auth?: TokenVerifier;
 }
 
 export function createApp(service: OrderService, opts: AppOptions): Express {
@@ -20,6 +23,7 @@ export function createApp(service: OrderService, opts: AppOptions): Express {
     res.json({ status: 'ok', tenant: opts.tenantId, wsClients: opts.getWsClientCount?.() ?? 0 });
   });
 
+  app.use('/api/v1', authenticate(opts.auth));
   app.use('/api/v1', ordersRouter(service));
   app.use('/api/v1', kitchenRouter(service));
 

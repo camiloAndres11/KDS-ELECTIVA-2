@@ -5,6 +5,7 @@ import { PrismaOrderRepository } from './repositories/prisma-order.repository.js
 import { OrderService } from './services/order.service.js';
 import { createSocketServer } from './realtime/socket.js';
 import { createApp } from './app.js';
+import { verifierFromEnv } from './middlewares/auth.middleware.js';
 
 const repo = new PrismaOrderRepository(prisma);
 const httpServer = http.createServer();
@@ -21,12 +22,14 @@ let requestHandler: http.RequestListener = (_req, res) => {
 };
 httpServer.on('request', (req, res) => requestHandler(req, res));
 
-const realtime = createSocketServer(httpServer, env.CORS_ORIGINS);
+const auth = verifierFromEnv();
+const realtime = createSocketServer(httpServer, env.CORS_ORIGINS, auth);
 const service = new OrderService(repo, realtime);
 requestHandler = createApp(service, {
   tenantId: env.TENANT_ID,
   corsOrigins: env.CORS_ORIGINS,
   getWsClientCount: realtime.clientCount,
+  auth,
 });
 
 httpServer.listen(env.PORT, () => {

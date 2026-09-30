@@ -24,3 +24,7 @@ export class DuplicateDisplayCodeError extends Error {
     super(`El código ${displayCode} ya existe`);
   }
 }
+
+export class UnauthorizedError extends Error {}
+
+export class ForbiddenError extends Error {}

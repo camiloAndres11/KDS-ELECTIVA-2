@@ -12,6 +12,10 @@ export class KeycloakService {
       realm: environment.auth.keycloak.realm,
       clientId: environment.auth.keycloak.clientId,
     });
+    // El backend valida el JWT: sin refresco el access token (~5 min) dejaría de servir. Si el refresh falla, la sesión SSO murió.
+    this.keycloak.onTokenExpired = () => {
+      this.keycloak.updateToken(30).catch(() => this.keycloak.login());
+    };
   }
 
   init(): Promise<boolean> {

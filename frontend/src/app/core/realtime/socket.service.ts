@@ -16,7 +16,7 @@ export class SocketService {
       return;
     }
     this.socket = io(environment.apiUrl, {
-      auth: { token: this.auth.token() },
+      auth: (cb) => cb({ token: this.auth.token() }), // se evalúa en cada (re)conexión: toma el token ya refrescado
       reconnectionDelay: 1000,
       reconnectionDelayMax: 30000,
     });

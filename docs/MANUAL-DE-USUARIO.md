@@ -96,6 +96,24 @@ Para cada empresa, en el Keycloak correspondiente:
 El frontend NO maneja contraseñas: el login redirige a Keycloak, guarda el token y lo
 envía como `Authorization: Bearer` en cada petición.
 
+### 2.4 Seguridad del backend (validación JWT / OpenID Connect)
+
+El backend valida el `Authorization: Bearer <JWT>` de Keycloak (firma RS256 vía JWKS, `iss`, `exp`)
+en toda `/api/v1/*` y en el handshake de Socket.IO. `/health` sigue público. Se activa por empresa
+con variables de entorno del backend (junto a `TENANT_ID`, `DATABASE_URL`, `CORS_ORIGINS`):
+
+| Variable | Ejemplo | Descripción |
+|---|---|---|
+| `AUTH_ISSUER` | `https://auth.starpizza.kds.example.com/realms/kds-starpizza` | Issuer del realm. **Vacía = API sin autenticación** (así funcionan hoy AWS dev y el login mock). |
+| `AUTH_CLIENT_ID` | `kds-frontend` | Cliente cuyos roles se leen (además de los roles de realm). |
+| `AUTH_AUDIENCE` | *(opcional)* | Si se define, exige ese `aud` en el token. |
+
+Permisos por rol: crear pedidos (`POST /orders`) → `POS_SYSTEM`/`ADMIN`; ver el tablero → cualquiera de
+los 4 roles; cambiar estado/prioridad → `KITCHEN_OPERATOR`/`DISPATCHER`/`ADMIN`. Sin token → 401; sin rol → 403.
+
+> **No activar `AUTH_ISSUER` en un backend al que apunte un frontend en modo `mock`** (p. ej. el de
+> desarrollo en AWS): el token mock no es un JWT real y recibiría 401. Solo en backends de empresa con Keycloak.
+
 ---
 
 ## 3. URLs y credenciales (entornos de prueba actuales)
