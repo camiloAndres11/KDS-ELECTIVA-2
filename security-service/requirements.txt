@@ -1,0 +1,25 @@
+# Dependencias del servicio de seguridad (Kafka + Keycloak)
+# Se instalan con:  pip install -r requirements.txt
+
+# Microframework web donde vive el middleware de Keycloak.
+Flask>=3.1.0,<4.0.0
+
+# Cliente de Kafka en Python. Es la libreria que pide el documento del curso.
+kafka-python>=3.0.11,<4.0.0
+
+# PyJWT lee y valida los tokens (JWT) que entrega Keycloak.
+# El extra [crypto] trae `cryptography`, que es la libreria que realmente
+# comprueba la firma digital del token.
+PyJWT[crypto]>=2.10.0,<3.0.0
+
+# Se usa de forma indirecta (PyJWT la necesita), pero la fijamos
+# explicitas para que la version quede documentada.
+cryptography>=46.0.0,<51.0.0
+
+# Lee las variables de configuracion desde el archivo .env
+# (asi no escribimos claves ni contrasenas dentro del codigo).
+python-dotenv>=1.1.0,<2.0.0
+
+# Cliente HTTP. Se usa para pedir las llaves publicas (JWKS) a Keycloak
+# y para los scripts de apoyo.
+requests>=2.32.0,<3.0.0
