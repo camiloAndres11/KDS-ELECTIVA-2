@@ -1,0 +1,7 @@
+# Dependencias solo para desarrollar (las pruebas).
+# Se instalan con:  pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+# Framework de pruebas.
+pytest>=8.4.0,<10.0.0
