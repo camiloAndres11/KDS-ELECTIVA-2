@@ -1,0 +1,137 @@
+{
+  "realm": "kds",
+  "displayName": "KDS - Pantallas de Cocina",
+  "enabled": true,
+
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "verifyEmail": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+
+  "roles": {
+    "realm": [
+      {
+        "name": "POS_SYSTEM",
+        "description": "El punto de venta. Puede crear pedidos."
+      },
+      {
+        "name": "KITCHEN_OPERATOR",
+        "description": "El operador de cocina. Puede ver y cambiar el estado de los pedidos."
+      },
+      {
+        "name": "DISPATCHER",
+        "description": "El despachador. Puede ver los pedidos y marcar los como entregados."
+      },
+      {
+        "name": "ADMIN",
+        "description": "Administrador. Puede hacer todo."
+      },
+      {
+        "name": "ANALISTA_EVENTOS",
+        "description": "Solo lee el historico de eventos de Kafka. No accede a la API."
+      }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "kds-api",
+      "name": "KDS API (cliente publico de desarrollo)",
+      "description": "Cliente usado por el servicio de seguridad. Es publico para que en la clase no haya que manejar secretos; en produccion debe ser confidencial.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://localhost:5000/*",
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200",
+        "http://localhost:5000"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:5000/*"
+      }
+    }
+  ],
+
+  "users": [
+    {
+      "username": "cocina",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "cocina@kds.local",
+      "firstName": "Cocina",
+      "lastName": "Principal",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "cocina123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["KITCHEN_OPERATOR"],
+      "requiredActions": []
+    },
+    {
+      "username": "caja",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "caja@kds.local",
+      "firstName": "Caja",
+      "lastName": "Principal",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "caja123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["POS_SYSTEM"],
+      "requiredActions": []
+    },
+    {
+      "username": "despacho",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "despacho@kds.local",
+      "firstName": "Despacho",
+      "lastName": "Principal",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "despacho123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["DISPATCHER"],
+      "requiredActions": []
+    },
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@kds.local",
+      "firstName": "Administrador",
+      "lastName": "KDS",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ADMIN", "KITCHEN_OPERATOR", "POS_SYSTEM", "DISPATCHER"],
+      "requiredActions": []
+    }
+  ]
+}
