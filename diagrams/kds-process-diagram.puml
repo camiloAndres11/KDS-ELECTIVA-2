@@ -1,0 +1,113 @@
+@startuml KDS - Diagrama de Procesos
+
+!define RECTANGLE class
+
+skinparam backgroundColor #FEFEFE
+skinparam componentStyle rectangle
+skinparam defaultFontName Arial
+
+title KDS - Kitchen Display System\nDiagrama de Procesos
+
+' === ACTORES ===
+actor "Usuario\n(Caja/Cocina/Despacho)" as User
+actor "Administrador" as Admin
+
+' === FRONTEND ===
+package "Frontend (Angular :4200)" {
+  [Login\nKeycloak JS] as Login
+  [Dashboard KDS\nSocket.IO] as Dashboard
+  [POS System\nCrear Pedidos] as POS
+  [Kitchen Display\nVer/Actualizar] as Kitchen
+  [Dispatcher\nMarcar Entrega] as Dispatcher
+}
+
+' === BACKEND ===
+package "Backend (Express :3000 / AWS Lambda)" {
+  [Auth Middleware\nValidación JWT RS256] as AuthMW
+  [Orders Controller\nPOST /api/v1/orders] as OrdersCtrl
+  [Kitchen Controller\nGET/PATCH /api/v1/kitchen] as KitchenCtrl
+  [Socket.IO Server\nTiempo Real] as SocketIO
+  [Order Service\nLógica de Negocio] as OrderSvc
+  [Prisma ORM] as Prisma
+}
+
+' === SECURITY SERVICE ===
+package "Security Service (Flask :5000)" {
+  [Keycloak Middleware\nValidación JWT] as KeycloakMW
+  [Role Checker\n@requiere_rol] as RoleCheck
+  [Kafka Producer\npublicar_evento] as KafkaProd
+}
+
+' === INFRAESTRUCTURA ===
+package "Infraestructura" {
+  database "PostgreSQL\n:5433" as DB
+  queue "Kafka\n:9092" as Kafka
+  [Keycloak\n:8080] as Keycloak
+  [Kafka UI\n:8083] as KafkaUI
+}
+
+' === FLUJO DE AUTENTICACIÓN ===
+User --> Login : 1. Credenciales
+Login --> Keycloak : 2. OAuth2/PKCE
+Keycloak --> Login : 3. JWT (RS256)
+Login --> Dashboard : 4. Token guardado
+
+' === FLUJO DE PETICIONES ===
+Dashboard --> AuthMW : 5. HTTP + Bearer Token
+POS --> AuthMW : HTTP + Bearer Token
+Kitchen --> AuthMW : HTTP + Bearer Token
+Dispatcher --> AuthMW : HTTP + Bearer Token
+
+AuthMW --> Keycloak : 6. Validar JWKS
+Keycloak --> AuthMW : 7. Llave pública
+
+AuthMW --> OrdersCtrl : 8. Token válido
+AuthMW --> KitchenCtrl : Token válido
+
+' === FLUJO DE PEDIDOS ===
+OrdersCtrl --> OrderSvc : 9. Crear pedido
+OrderSvc --> Prisma : 10. Guardar
+Prisma --> DB : 11. INSERT
+OrderSvc --> SocketIO : 12. Emitir evento
+SocketIO --> Kitchen : 13. Notificar nuevo pedido
+SocketIO --> Dashboard : 14. Actualizar UI
+
+' === FLUJO DE COCINA ===
+KitchenCtrl --> OrderSvc : 15. Ver/Actualizar
+OrderSvc --> Prisma : 16. Consultar
+Prisma --> DB : 17. SELECT/UPDATE
+OrderSvc --> SocketIO : 18. Emitir cambio
+SocketIO --> Dashboard : 19. Actualizar estado
+
+' === FLUJO DE SEGURIDAD (KAFKA) ===
+KeycloakMW --> Keycloak : Validar token
+KeycloakMW --> RoleCheck : Token válido
+RoleCheck --> KafkaProd : Acceso permitido/denegado
+KafkaProd --> Kafka : Publicar evento
+Kafka --> KafkaUI : Visualizar eventos
+
+' === FLUJO DE AUDITORÍA ===
+Admin --> KafkaUI : Ver eventos seguridad
+Admin --> Keycloak : Gestionar usuarios/roles
+
+' === NOTAS ===
+note right of Kafka
+  Topics:
+  - seguridad.accesos
+  - pedidos.eventos
+end note
+
+note right of Keycloak
+  Roles:
+  - POS_SYSTEM
+  - KITCHEN_OPERATOR
+  - DISPATCHER
+  - ADMIN
+end note
+
+note bottom of AuthMW
+  401: Sin token o inválido
+  403: Sin rol suficiente
+end note
+
+@enduml
