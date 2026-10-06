@@ -3,3 +3,6 @@ dist/
 .env
 .idea/
 graphify-out/
+
+keycloak-26.1.4/data/h2/
+backend/.serverless/
