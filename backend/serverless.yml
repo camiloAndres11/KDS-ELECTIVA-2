@@ -11,7 +11,6 @@ provider:
     TENANT_ID: ${env:TENANT_ID, 'dev'}
     DATABASE_URL: ${env:DATABASE_URL}
     CORS_ORIGINS: ${env:CORS_ORIGINS, 'http://localhost:4200'}
-    # OpenID Connect (Keycloak). AUTH_ISSUER vacío = API sin autenticación.
     AUTH_ISSUER: ${env:AUTH_ISSUER, ''}
     AUTH_CLIENT_ID: ${env:AUTH_CLIENT_ID, 'kds-frontend'}
     AUTH_AUDIENCE: ${env:AUTH_AUDIENCE, ''}

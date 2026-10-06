@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["src/app/kds/kds.routes.ts"],
+  "sourcesContent": ["import type { Routes } from '@angular/router';\r\nimport { roleGuard } from '../core/auth/guards';\r\n\r\nexport const KDS_ROUTES: Routes = [\r\n  {\r\n    path: '',\r\n    loadComponent: () => import('./tablero-kds/tablero-kds.component').then((m) => m.TableroKdsComponent),\r\n  },\r\n  {\r\n    path: 'pos',\r\n    canActivate: [roleGuard(['POS_SYSTEM', 'ADMIN'])],\r\n    loadComponent: () => import('./pos/pos.component').then((m) => m.PosComponent),\r\n  },\r\n];\r\n"],
+  "mappings": ";;;;;;;;AAGO,IAAM,aAAqB;EAChC;IACE,MAAM;IACN,eAAe,MAAM,OAAO,qBAAqC,EAAE,KAAK,CAAC,MAAM,EAAE,mBAAmB;;EAEtG;IACE,MAAM;IACN,aAAa,CAAC,UAAU,CAAC,cAAc,OAAO,CAAC,CAAC;IAChD,eAAe,MAAM,OAAO,qBAAqB,EAAE,KAAK,CAAC,MAAM,EAAE,YAAY;;;",
+  "names": []
+}
