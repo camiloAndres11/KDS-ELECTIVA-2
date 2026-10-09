@@ -103,8 +103,17 @@ class ResultadoFalso:
 
 
 class PromesaFalsa:
+    """Imita `FutureRecordMetadata`: los callbacks se encadenan."""
+
     def get(self, timeout: float | None = None) -> ResultadoFalso:
         return ResultadoFalso()
+
+    def add_callback(self, funcion: Callable[..., Any]) -> "PromesaFalsa":
+        funcion(ResultadoFalso())
+        return self
+
+    def add_errback(self, _funcion: Callable[..., Any]) -> "PromesaFalsa":
+        return self
 
 
 class ProductorFalso:

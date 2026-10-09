@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { CreateOrderInput, Order, OrderPriority, OrderRepository, OrderStatus } from '../../src/domain/order.js';
+import { ACTIVE_STATUSES } from '../../src/domain/order-state.js';
+import { DuplicateDisplayCodeError } from '../../src/domain/errors.js';
 
 const STATUS_TIMESTAMP_FIELD: Partial<Record<OrderStatus, 'startedAt' | 'readyAt' | 'dispatchedAt'>> = {
   IN_PREPARATION: 'startedAt',
@@ -12,6 +14,9 @@ export class InMemoryOrderRepository implements OrderRepository {
   private orders = new Map<string, Order>();
 
   async create(input: CreateOrderInput): Promise<Order> {
+    if ([...this.orders.values()].some((o) => o.displayCode === input.displayCode)) {
+      throw new DuplicateDisplayCodeError(input.displayCode);
+    }
     const order: Order = {
       id: randomUUID(),
       displayCode: input.displayCode,
@@ -35,16 +40,10 @@ export class InMemoryOrderRepository implements OrderRepository {
     return this.orders.get(id) ?? null;
   }
 
-  async findActiveForKds(readyTtlMinutes: number): Promise<Order[]> {
-    const readyCutoff = Date.now() - readyTtlMinutes * 60_000;
+  async findActiveForKds(): Promise<Order[]> {
     const priorityRank: Record<OrderPriority, number> = { VIP: 0, HIGH: 1, NORMAL: 2 };
     return [...this.orders.values()]
-      .filter(
-        (o) =>
-          o.status === 'PENDING' ||
-          o.status === 'IN_PREPARATION' ||
-          (o.status === 'READY' && new Date(o.readyAt ?? o.createdAt).getTime() >= readyCutoff),
-      )
+      .filter((o) => ACTIVE_STATUSES.includes(o.status))
       .sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority] || a.createdAt.localeCompare(b.createdAt));
   }
 
@@ -54,6 +53,7 @@ export class InMemoryOrderRepository implements OrderRepository {
     expectedVersion: number,
     allowedFromStatuses: OrderStatus[],
     _previousStatus: OrderStatus,
+    _userId: string | null,
   ): Promise<Order | null> {
     const current = this.orders.get(id);
     if (!current || current.version !== expectedVersion || !allowedFromStatuses.includes(current.status)) return null;
@@ -68,9 +68,16 @@ export class InMemoryOrderRepository implements OrderRepository {
     return updated;
   }
 
-  async updatePriority(id: string, priority: OrderPriority, expectedVersion: number, _previousPriority: OrderPriority): Promise<Order | null> {
+  async updatePriority(
+    id: string,
+    priority: OrderPriority,
+    expectedVersion: number,
+    allowedFromStatuses: OrderStatus[],
+    _previousPriority: OrderPriority,
+    _userId: string | null,
+  ): Promise<Order | null> {
     const current = this.orders.get(id);
-    if (!current || current.version !== expectedVersion) return null;
+    if (!current || current.version !== expectedVersion || !allowedFromStatuses.includes(current.status)) return null;
     const updated: Order = { ...current, priority, version: current.version + 1 };
     this.orders.set(id, updated);
     return updated;

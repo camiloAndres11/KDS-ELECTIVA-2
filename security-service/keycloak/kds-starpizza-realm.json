@@ -1,0 +1,147 @@
+{
+  "realm": "kds-starpizza",
+  "displayName": "KDS · StarPizza",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "verifyEmail": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "client": {
+      "kds-frontend": [
+        {
+          "name": "POS_SYSTEM",
+          "description": "El punto de venta. Puede crear pedidos."
+        },
+        {
+          "name": "KITCHEN_OPERATOR",
+          "description": "Operador de cocina. Ve el tablero y cambia estado y prioridad."
+        },
+        {
+          "name": "DISPATCHER",
+          "description": "Despachador. Ve el tablero y despacha pedidos listos."
+        },
+        {
+          "name": "ADMIN",
+          "description": "Administrador. Puede hacer todo."
+        }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "kds-frontend",
+      "name": "KDS Frontend · StarPizza",
+      "description": "Cliente publico del frontend Angular: login con redireccion + PKCE S256. directAccessGrants SOLO para pruebas locales con scripts; apagar en produccion.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://localhost:4300/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4300"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4300/*"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@starpizza.local",
+      "firstName": "Admin",
+      "lastName": "StarPizza",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "uptc2025",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "kds-frontend": [
+          "ADMIN"
+        ]
+      },
+      "requiredActions": []
+    },
+    {
+      "username": "cocinero",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "cocinero@starpizza.local",
+      "firstName": "Cocinero",
+      "lastName": "StarPizza",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "uptc2025",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "kds-frontend": [
+          "KITCHEN_OPERATOR"
+        ]
+      },
+      "requiredActions": []
+    },
+    {
+      "username": "despachador",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "despachador@starpizza.local",
+      "firstName": "Despachador",
+      "lastName": "StarPizza",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "uptc2025",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "kds-frontend": [
+          "KITCHEN_OPERATOR",
+          "DISPATCHER"
+        ]
+      },
+      "requiredActions": []
+    },
+    {
+      "username": "pos",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "pos@starpizza.local",
+      "firstName": "Pos",
+      "lastName": "StarPizza",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "uptc2025",
+          "temporary": false
+        }
+      ],
+      "clientRoles": {
+        "kds-frontend": [
+          "POS_SYSTEM"
+        ]
+      },
+      "requiredActions": []
+    }
+  ]
+}

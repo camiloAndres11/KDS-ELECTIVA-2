@@ -16,16 +16,17 @@ setlocal
 REM --- Localizamos Keycloak ------------------------------------------------
 REM %~dp0 es la carpeta de este archivo, con la barra final. Asi el script
 REM funciona aunque lo ejecutes desde otro sitio.
-set "KEYCLOAK_BIN=%~dp0..\..\keycloak-26.1.4\bin"
-set "KEYCLOAK_HOME=%~dp0..\..\keycloak-26.1.4"
+set "KEYCLOAK_HOME=%~dp0..\keycloak-26.1.4"
+set "KEYCLOAK_BIN=%KEYCLOAK_HOME%\bin"
 set "REALM_ORIGEN=%~dp0keycloak\kds-realm.json"
 
 if not exist "%KEYCLOAK_BIN%\kc.bat" (
   echo.
   echo ERROR: no encuentro Keycloak en "%KEYCLOAK_BIN%".
   echo.
-  echo Este script espera que keycloak-26.1.4 este dos niveles por encima
-  echo de security-service, es decir, junto a la carpeta Proyecto.
+  echo Este script espera keycloak-26.1.4 en la raiz del repositorio,
+  echo junto a la carpeta security-service. Descargalo de:
+  echo   https://github.com/keycloak/keycloak/releases/download/26.1.4/keycloak-26.1.4.zip
   echo.
   echo Si tu Keycloak esta en otro sitio, edita KEYCLOAK_BIN y KEYCLOAK_HOME
   echo en este archivo y vuelve a ejecutarlo.
@@ -56,7 +57,8 @@ echo.
 if not exist "%KEYCLOAK_HOME%\data\import" (
   mkdir "%KEYCLOAK_HOME%\data\import" >nul 2>&1
 )
-copy /Y "%REALM_ORIGEN%" "%KEYCLOAK_HOME%\data\import\kds-realm.json" >nul
+REM Todos los realms (kds + uno por empresa: kds-starpizza, kds-delarosepizza).
+copy /Y "%~dp0keycloak\*-realm.json" "%KEYCLOAK_HOME%\data\import\" >nul
 
 echo La primera vez puede tardar 1-2 minutos.
 echo Para detenerlo: Ctrl+C

@@ -11,13 +11,13 @@ export function getActiveOrders(service: OrderService) {
 export function changeStatus(service: OrderService) {
   return async (req: Request, res: Response) => {
     const { status, version } = changeStatusSchema.parse(req.body);
-    res.json(await service.changeStatus(String(req.params.id), status, version));
+    res.json(await service.changeStatus(String(req.params.id), status, version, res.locals.principal?.username ?? null));
   };
 }
 
 export function changePriority(service: OrderService) {
   return async (req: Request, res: Response) => {
     const { priority, version } = changePrioritySchema.parse(req.body);
-    res.json(await service.changePriority(String(req.params.id), priority, version));
+    res.json(await service.changePriority(String(req.params.id), priority, version, res.locals.principal?.username ?? null));
   };
 }

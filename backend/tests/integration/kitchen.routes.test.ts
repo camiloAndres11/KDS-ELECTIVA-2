@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import type { Express } from 'express';
 import { createApp } from '../../src/app.js';
@@ -76,5 +76,46 @@ describe('API REST de cocina', () => {
       request(app).patch(`/api/v1/kitchen/orders/${created.body.id}/status`).send({ status: 'IN_PREPARATION', version: 1 }),
     ]);
     expect([a.status, b.status].sort()).toEqual([200, 409]);
+  });
+
+  describe('regresiones de la auditoría', () => {
+    afterEach(() => vi.useRealTimers());
+
+    const patchStatus = (id: string, status: string, version: number) =>
+      request(app).patch(`/api/v1/kitchen/orders/${id}/status`).send({ status, version });
+
+    it('B1: un pedido READY sigue en el tablero aunque pasen 10 minutos sin despachar', async () => {
+      const { body } = await request(app).post('/api/v1/orders').send(samplePayload).expect(201);
+      await patchStatus(body.id, 'IN_PREPARATION', 1).expect(200);
+      await patchStatus(body.id, 'READY', 2).expect(200);
+
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(Date.now() + 10 * 60_000);
+      const active = await request(app).get('/api/v1/kitchen/orders').expect(200);
+      expect(active.body.map((o: { id: string }) => o.id)).toContain(body.id);
+    });
+
+    it('B2: un displayCode repetido responde 409, no 500', async () => {
+      await request(app).post('/api/v1/orders').send(samplePayload).expect(201);
+      await request(app).post('/api/v1/orders').send(samplePayload).expect(409);
+    });
+
+    it('B3: JSON malformado responde 400 y un body enorme 413', async () => {
+      await request(app).post('/api/v1/orders').set('Content-Type', 'application/json').send('{"x":').expect(400);
+      await request(app)
+        .post('/api/v1/orders')
+        .set('Content-Type', 'application/json')
+        .send(JSON.stringify({ notes: 'x'.repeat(200_000) }))
+        .expect(413);
+    });
+
+    it('B6: no se cambia la prioridad de un pedido cancelado (400)', async () => {
+      const { body } = await request(app).post('/api/v1/orders').send(samplePayload).expect(201);
+      await patchStatus(body.id, 'CANCELLED', 1).expect(200);
+      await request(app)
+        .patch(`/api/v1/kitchen/orders/${body.id}/priority`)
+        .send({ priority: 'HIGH', version: 2 })
+        .expect(400);
+    });
   });
 });

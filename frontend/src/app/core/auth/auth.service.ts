@@ -74,6 +74,14 @@ export class AuthService {
     return this.keycloak.token() ?? null;
   }
 
+  /** Como `token()`, pero en Keycloak primero lo refresca si está por vencer. */
+  async tokenVigente(): Promise<string | null> {
+    if (environment.auth.provider === 'keycloak' && this._authenticated()) {
+      await this.keycloak.actualizarToken(30);
+    }
+    return this.token();
+  }
+
   isAuthenticated(): boolean {
     return this._authenticated();
   }

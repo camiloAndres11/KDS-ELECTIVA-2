@@ -29,7 +29,9 @@
     <p class="notas-generales">{{ pedido.notes }}</p>
   }
 
-  <button type="button" class="accion" (click)="cambiarEstado.emit(accion.siguienteEstado)">
-    {{ accion.etiqueta }}
-  </button>
+  @if (accion) {
+    <button type="button" class="accion" (click)="cambiarEstado.emit(accion.siguienteEstado)">
+      {{ accion.etiqueta }}
+    </button>
+  }
 </article>

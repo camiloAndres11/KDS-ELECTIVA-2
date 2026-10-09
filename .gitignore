@@ -6,3 +6,7 @@ graphify-out/
 
 keycloak-26.1.4/data/h2/
 backend/.serverless/
+
+# Artefactos de build/despliegue (se regeneran; .serverless/ guarda estado de cuenta)
+frontend/dist-dev/
+.serverless/

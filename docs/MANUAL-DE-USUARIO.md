@@ -3,6 +3,8 @@
 Manual del **frontend Angular multitenant** (rama `juan-frontend-angular`) para el
 equipo del proyecto KDS-ELECTIVA-2.
 
+> **Desplegar todo desde cero en otro PC (local + AWS): ver [`GUIA-DESPLIEGUE.md`](GUIA-DESPLIEGUE.md).**
+
 ---
 
 ## 1. Qué se despliega
@@ -78,8 +80,38 @@ instancia del mismo código con:
 - `DATABASE_URL` propia (Postgres de Neon, una BD por empresa)
 - `CORS_ORIGINS` con el dominio del frontend correspondiente
 
+Despliegue de una empresa (crea su propio stack `kds-backend-api-<empresa>` y su propia URL; el stack `dev` no se toca):
+```bash
+cd backend && npm run build
+# 1) migrar su BD de Neon (una vez, y tras cada migración nueva)
+DATABASE_URL='<url de la BD kds_starpizza>' npx prisma migrate deploy
+# 2) desplegar la Lambda (credenciales de AWS en el entorno)
+TENANT_ID=starpizza \
+DATABASE_URL='<url de la BD kds_starpizza>' \
+CORS_ORIGINS='https://<dominio-frontend>,http://localhost:4300' \
+AUTH_ISSUER='https://d34c6bytkv46ib.cloudfront.net/realms/kds-starpizza' \
+AUTH_CLIENT_ID=kds-frontend \
+npx serverless deploy --stage starpizza        # igual para delarosepizza (realm kds-delarosepizza)
+```
+La URL que imprime `serverless deploy` es el `apiUrl` de `environment.<empresa>.ts`.
+
 **Nota:** en Lambda no hay Socket.IO. El frontend ya lo contempla: usa **polling
 cada 10 s** (`pollingMs`) y muestra "Actualización automática (HTTP)" en el encabezado.
+
+#### Probar los frontends de producción contra AWS (Keycloak AWS + Lambdas)
+
+`ng build -c starpizza` / `-c delarosepizza` ya apuntan a las Lambdas y al Keycloak de AWS. En local, sirve el resultado
+como lo haría un hosting (con *fallback* de rutas a `index.html`) en los puertos que el realm ya permite:
+```bash
+cd frontend && ng build -c starpizza --output-path dist/starpizza     # frontend en http://localhost:4300
+cd frontend && ng build -c delarosepizza --output-path dist/delarose  # frontend en http://localhost:4400
+# servir dist/<empresa>/browser con cualquier servidor estático con fallback SPA
+```
+> No uses `ng serve` con `--poll` sobre `/mnt/c` para probar el login: recompila por cambios falsos y **recarga la página en
+> pleno login**; Keycloak rechaza el segundo canje del mismo código (400) y parece un bucle de login.
+
+Las Lambdas aceptan por CORS `http://localhost:4300` / `:4400`. Al publicar un frontend con dominio real: añadir el dominio
+a `CORS_ORIGINS` de su Lambda (y volver a desplegar) y a `redirectUris`/`webOrigins` de su realm.
 
 ### 2.3 Keycloak por empresa (parte de Luis)
 
@@ -95,6 +127,26 @@ Para cada empresa, en el Keycloak correspondiente:
 
 El frontend NO maneja contraseñas: el login redirige a Keycloak, guarda el token y lo
 envía como `Authorization: Bearer` en cada petición.
+
+#### Keycloak en AWS (ya desplegado)
+
+Un único Keycloak en **ECS Fargate** sirve los dos realms (`kds-starpizza`, `kds-delarosepizza`) detrás de CloudFront
+(HTTPS gratis) y un ALB que solo acepta tráfico de CloudFront. Plantilla: `infra/keycloak-ecs.yml`.
+
+```bash
+# desplegar o actualizar (crea el stack `kds-keycloak` en us-east-1; ≈10 min la primera vez)
+AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... node scripts/deploy-keycloak-aws.mjs
+```
+- Los realms se importan en cada arranque desde `security-service/keycloak/kds-*-realm.json`; en AWS el login por contraseña directo está desactivado.
+- **Los usuarios creados a mano en la consola se pierden si la tarea se reinicia** (BD H2 dentro del contenedor). Para persistir: RDS Postgres.
+- Para agregar el dominio real de un frontend, añadirlo a `redirectUris`/`webOrigins` del realm y volver a ejecutar el script.
+- Para apagar y dejar de pagar (~US$50/mes): borrar el stack `kds-keycloak` en CloudFormation.
+
+**Importante para el frontend:** con Keycloak en otro sitio (AWS) y el frontend en `localhost` o en su propio dominio, el navegador
+bloquea las cookies de terceros del iframe de sesión de Keycloak. Por eso `keycloak.service.ts` usa `checkLoginIframe: false` y
+`check-sso` por redirección (sin `silentCheckSsoRedirectUri`). Si se reactivan, el refresco de token falla y el login entra en bucle.
+
+Para que el backend de una empresa use este Keycloak: `AUTH_ISSUER=https://d34c6bytkv46ib.cloudfront.net/realms/kds-<empresa>` y `AUTH_CLIENT_ID=kds-frontend`.
 
 ### 2.4 Seguridad del backend (validación JWT / OpenID Connect)
 
@@ -118,27 +170,35 @@ los 4 roles; cambiar estado/prioridad → `KITCHEN_OPERATOR`/`DISPATCHER`/`ADMIN
 
 ## 3. URLs y credenciales (entornos de prueba actuales)
 
-### Local (modo mock, sin Keycloak)
+### Local
 
-| Frente | URL | Usuarios | Clave |
-|---|---|---|---|
-| Desarrollo (contra AWS) | http://localhost:4200 | `admin` · `cocinero` · `despachador` · `pos` | `uptc2025` (todos) |
-| StarPizza (demo local) | http://localhost:4300 | `admin` · `cocinero` | `uptc2025` |
-| Delarose Pizza (demo local) | http://localhost:4400 | `admin` · `cocinero` | `uptc2025` |
+| Frente | URL | Login | Usuarios | Clave |
+|---|---|---|---|---|
+| Desarrollo (contra AWS) | http://localhost:4200 | mock (sin Keycloak) | `admin` · `cocinero` · `despachador` · `pos` | `uptc2025` |
+| StarPizza | http://localhost:4300 | **Keycloak**, realm `kds-starpizza` | `admin` · `cocinero` · `despachador` · `pos` | `uptc2025` |
+| Delarose Pizza | http://localhost:4400 | **Keycloak**, realm `kds-delarosepizza` | `admin` · `cocinero` · `despachador` · `pos` | `uptc2025` |
+
+Los usuarios de StarPizza y Delarose tienen los mismos nombres pero son cuentas **distintas**
+(cada realm tiene las suyas): un token de un realm lo rechaza el backend del otro.
 
 ### Infraestructura
 
 | Servicio | URL | Credencial |
 |---|---|---|
 | Backend AWS del equipo | https://vtl24350ra.execute-api.us-east-1.amazonaws.com | `GET /health` → `tenant: dev` |
-| Keycloak local | http://localhost:8080 | `admin` / `admin` |
-| Backend local dev | http://localhost:3000 | solo desarrollo |
-| Backend local StarPizza | http://localhost:3001 | `tenant: starpizza` |
-| Backend local Delarose | http://localhost:3002 | `tenant: delarosepizza` |
-| Postgres (Docker) | localhost:5433 | `kds` / `kds` |
+| Keycloak AWS (ECS) | https://d34c6bytkv46ib.cloudfront.net | consola `/admin` · usuario `admin` · contraseña: la imprime `scripts/deploy-keycloak-aws.mjs` al crear el stack |
+| Keycloak local (Docker) | http://localhost:8081 | consola: `admin` / `admin123` |
+| **Backend AWS StarPizza** (Lambda) | https://fy4meajzqd.execute-api.us-east-1.amazonaws.com | `GET /health` → `tenant: starpizza` · BD Neon `kds_starpizza` · realm `kds-starpizza` |
+| **Backend AWS Delarose** (Lambda) | https://uovgkcgp5j.execute-api.us-east-1.amazonaws.com | `GET /health` → `tenant: delarosepizza` · BD Neon `kds_delarosepizza` · realm `kds-delarosepizza` |
+| Backend local StarPizza | http://localhost:3001 | `GET /health` → `tenant: starpizza` |
+| Backend local Delarose | http://localhost:3002 | `GET /health` → `tenant: delarosepizza` |
+| Postgres (Docker) | localhost:5433 | `kds` / `kds` · BDs `kds_starpizza`, `kds_delarosepizza` |
 
-> Modo mock: `auth.provider: 'mock'` (solo en environments de desarrollo). Los
-> environments de empresa (`starpizza`/`delarosepizza`) usan Keycloak real.
+> Keycloak usa el **8081** porque el 8080 suele estar ocupado. Si usas `iniciar-keycloak.bat`
+> (Keycloak sin Docker) queda en el 8080 con los mismos realms.
+>
+> Modo mock: `auth.provider: 'mock'` (solo el environment de desarrollo contra AWS). Todos los
+> demás (`starpizza`, `delarosepizza` y sus variantes `-local`) usan Keycloak real.
 
 ## 4. Rutas de la aplicación
 
@@ -158,26 +218,33 @@ los 4 roles; cambiar estado/prioridad → `KITCHEN_OPERATOR`/`DISPATCHER`/`ADMIN
 - [ ] Dos pestañas: un pedido creado en una aparece en la otra (polling ≤ 10 s).
 - [ ] StarPizza y Delarose: distinta marca/colores y **datos aislados** (un pedido de una no aparece en la otra).
 - [ ] Con el backend caído: "Actualización automática" sigue sin romperse y el POS muestra error al crear pedidos.
-- [ ] (Keycloak) Un usuario de un realm no entra al otro frente.
+- [ ] (Keycloak) Un usuario de un realm no entra al otro frente (`node scripts/smoke-tenants.mjs` lo comprueba por API).
 
 ## 6. Comandos útiles
 
 ```bash
-# Frontend
+# 1) Infraestructura local: Postgres (:5433) + Keycloak (:8081) con los realms importados
+docker compose up -d
+
+# 2) Backend por empresa (migrar cada BD la primera vez)
+cd backend && npm install && npm run build
+cp .env.starpizza.example .env.starpizza && cp .env.delarosepizza.example .env.delarosepizza
+DATABASE_URL=postgresql://kds:kds@localhost:5433/kds_starpizza npx prisma migrate deploy
+DATABASE_URL=postgresql://kds:kds@localhost:5433/kds_delarosepizza npx prisma migrate deploy
+node --env-file=.env.starpizza dist/server.js                # :3001
+node --env-file=.env.delarosepizza dist/server.js            # :3002
+
+# 3) Frontend
 cd frontend
-ng serve                                # default (contra backend AWS, mock)
-ng serve -c starpizza-local --port 4300 # demo local aislada
-ng serve -c delarosepizza-local --port 4400
-ng build -c starpizza                   # producción StarPizza
-ng build -c delarosepizza               # producción Delarose
+ng serve                                            # dev contra AWS, login mock (:4200)
+ng serve -c starpizza-local --port 4300             # StarPizza + Keycloak
+ng serve -c delarosepizza-local --port 4400         # Delarose + Keycloak
+ng build -c starpizza                               # producción StarPizza
+ng build -c delarosepizza                           # producción Delarose
 
-# Backend local (por empresa)
-cd backend && npm run build
-node --env-file=.env dist/server.js                   # :3000 (dev)
-node --env-file=.env.starpizza dist/server.js         # :3001
-node --env-file=.env.delarosepizza dist/server.js     # :3002
-
-# Infraestructura local
-docker compose up -d   # Keycloak :8080
-# Postgres: contenedor kds-postgres en :5433
+# 4) Prueba de humo multitenant (tokens, roles y datos aislados) con los dos backends arriba
+node scripts/smoke-tenants.mjs
 ```
+
+> En WSL, si `ng serve` no recompila al editar archivos en `/mnt/c`, añade `--poll 2000`.
+> `docker compose down -v` borra las bases de datos de ambas empresas.

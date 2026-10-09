@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/kds/temporizador/temporizador.component.css"],
-  "sourcesContent": [".temporizador {\n  display: inline-flex;\n  align-items: center;\n  gap: var(--space-2);\n  font-family: var(--font-display);\n  font-size: var(--text-timer);\n  font-weight: 600;\n  color: var(--color-ink-muted);\n  transition: color var(--dur-base) var(--ease-out);\n}\n\n.temporizador.warning {\n  color: var(--color-status-warning);\n}\n\n.temporizador.critical {\n  color: var(--color-status-critical);\n}\n\n.punto {\n  width: 8px;\n  height: 8px;\n  border-radius: 50%;\n  background: var(--color-status-critical);\n  animation: pulse-critical 1.1s var(--ease-in-out) infinite;\n}\n"],
-  "mappings": ";AAAA,CAAC;AACC,WAAS;AACT,eAAa;AACb,OAAK,IAAI;AACT,eAAa,IAAI;AACjB,aAAW,IAAI;AACf,eAAa;AACb,SAAO,IAAI;AACX,cAAY,MAAM,IAAI,YAAY,IAAI;AACxC;AAEA,CAXC,YAWY,CAAC;AACZ,SAAO,IAAI;AACb;AAEA,CAfC,YAeY,CAAC;AACZ,SAAO,IAAI;AACb;AAEA,CAAC;AACC,SAAO;AACP,UAAQ;AACR,iBAAe;AACf,cAAY,IAAI;AAChB,aAAW,eAAe,KAAK,IAAI,eAAe;AACpD;",
-  "names": []
-}

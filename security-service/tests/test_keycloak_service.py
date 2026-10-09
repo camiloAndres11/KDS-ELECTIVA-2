@@ -197,3 +197,4 @@ def test_keycloak_caido_no_tumba_el_servicio(monkeypatch: pytest.MonkeyPatch, fa
         verificar_token(token)
 
     assert error.value.motivo == "keycloak_no_disponible"
+    assert isinstance(error.value, keycloak_service.KeycloakNoDisponibleError)

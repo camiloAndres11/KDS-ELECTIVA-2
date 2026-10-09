@@ -231,3 +231,46 @@ def test_los_riesgos_de_sonido_solo_al_lista_de_rol(cliente, fabricar_token) -> 
     assert cliente.get("/api/v1/pedidos", headers=_cabecera(token)).status_code == 200
     # Escritura: prohibida.
     assert cliente.post("/api/v1/pedidos", json={}, headers=_cabecera(token)).status_code == 403
+
+
+# --- Regresiones de la auditoria --------------------------------------------
+
+
+def test_keycloak_caido_responde_503_no_401(registrador_eventos, fabricar_token, monkeypatch) -> None:
+    """S2: si Keycloak no responde, el cliente NO debe tirar su token."""
+    import keycloak_service
+
+    class ClienteCaido:
+        def get_signing_key_from_jwt(self, _token: str):
+            raise ConnectionError("Keycloak apagado (simulado)")
+
+    monkeypatch.setattr(keycloak_service, "obtener_cliente_jwks", lambda: ClienteCaido())
+    app = crear_aplicacion()
+    app.config["TESTING"] = True
+
+    respuesta = app.test_client().get("/api/v1/perfil", headers=_cabecera(fabricar_token(roles=["ADMIN"])))
+
+    assert respuesta.status_code == 503
+
+
+def test_requiere_rol_cierra_si_la_ruta_quedo_publica_por_error(registrador_eventos) -> None:
+    """S1: una ruta con @requiere_rol marcada como publica no debe quedar abierta."""
+    app = crear_aplicacion()
+    app.config["TESTING"] = True
+    app.config["RUTAS_SIN_AUTENTICAR"] = ["/", "/health", "/api/v1/pedidos"]
+
+    assert app.test_client().get("/api/v1/pedidos").status_code == 401
+
+
+def test_esquema_bearer_no_distingue_mayusculas(cliente, fabricar_token) -> None:
+    """S6: RFC 6750, `bearer` y `Bearer` son lo mismo."""
+    token = fabricar_token(roles=["ADMIN"])
+
+    assert cliente.get("/api/v1/perfil", headers={"Authorization": f"bearer {token}"}).status_code == 200
+
+
+def test_el_id_del_evento_coincide_con_el_de_la_respuesta(cliente, fabricar_token, registrador_eventos) -> None:
+    """S4: el pedido_id del evento Kafka debe poder cruzarse con la respuesta."""
+    respuesta = cliente.post("/api/v1/pedidos", json={}, headers=_cabecera(fabricar_token(roles=["POS_SYSTEM"])))
+
+    assert registrador_eventos.de_tipo("pedido_creado")[0]["pedido_id"] == respuesta.get_json()["id"]

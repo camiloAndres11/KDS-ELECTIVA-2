@@ -1,0 +1,45 @@
+# Infraestructura local multitenant: Postgres (una BD por empresa) + Keycloak (un realm por empresa).
+#
+#   docker compose up -d
+#
+# Postgres : localhost:5433  (kds / kds)  BDs: kds_starpizza, kds_delarosepizza
+# Keycloak : http://localhost:8081        (admin / admin123)  realms: kds-starpizza, kds-delarosepizza, kds
+# (8081 y no 8080 porque 8080 suele estar ocupado por otras herramientas)
+#
+# Kafka vive aparte, en security-service/docker-compose.yml.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kds-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kds
+      POSTGRES_PASSWORD: kds
+    ports:
+      - "5433:5432"
+    volumes:
+      - kds-pgdata:/var/lib/postgresql/data
+      - ./infra/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kds"]
+      interval: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1.4
+    container_name: kds-keycloak
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm", "--hostname-strict=false", "--http-enabled=true"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin123
+    ports:
+      - "8081:8080"
+    volumes:
+      # Los datos de Keycloak (H2) viven dentro del contenedor: al recrearlo se reimportan los realms desde estos archivos.
+      - ./security-service/keycloak/kds-realm.json:/opt/keycloak/data/import/kds-realm.json:ro
+      - ./security-service/keycloak/kds-starpizza-realm.json:/opt/keycloak/data/import/kds-starpizza-realm.json:ro
+      - ./security-service/keycloak/kds-delarosepizza-realm.json:/opt/keycloak/data/import/kds-delarosepizza-realm.json:ro
+
+volumes:
+  kds-pgdata:

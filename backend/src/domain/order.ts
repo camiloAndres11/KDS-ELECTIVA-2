@@ -56,11 +56,12 @@ export interface CreateOrderInput {
 export interface OrderRepository {
   create(input: CreateOrderInput): Promise<Order>;
   findById(id: string): Promise<Order | null>;
-  findActiveForKds(readyTtlMinutes: number): Promise<Order[]>;
+  /** Pedidos que todavía no llegaron a un estado final (PENDING, IN_PREPARATION, READY). */
+  findActiveForKds(): Promise<Order[]>;
   /**
    * Actualiza el status solo si `expectedVersion` coincide Y el status actual está en `allowedFromStatuses`
    * (ambas condiciones en la misma operación atómica, para no depender de una lectura previa que puede quedar obsoleta).
-   * Devuelve null si no se cumplió alguna de las dos condiciones.
+   * Devuelve null si no se cumplió alguna de las dos condiciones. `userId` queda en la auditoría.
    */
   updateStatus(
     id: string,
@@ -68,6 +69,15 @@ export interface OrderRepository {
     expectedVersion: number,
     allowedFromStatuses: OrderStatus[],
     previousStatus: OrderStatus,
+    userId: string | null,
   ): Promise<Order | null>;
-  updatePriority(id: string, priority: OrderPriority, expectedVersion: number, previousPriority: OrderPriority): Promise<Order | null>;
+  /** Igual que updateStatus: version y estado permitido en la misma escritura atómica. */
+  updatePriority(
+    id: string,
+    priority: OrderPriority,
+    expectedVersion: number,
+    allowedFromStatuses: OrderStatus[],
+    previousPriority: OrderPriority,
+    userId: string | null,
+  ): Promise<Order | null>;
 }

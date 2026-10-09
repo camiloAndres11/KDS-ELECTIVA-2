@@ -25,28 +25,35 @@ resources:
         ContainerDefinitions:
           - Name: keycloak
             Image: quay.io/keycloak/keycloak:26.1.4
-            Command: ["start", "--optimized"]
+            # Sin --optimized: la imagen oficial no viene construida para postgres; `start` hace el build al arrancar.
+            Command: ["start"]
             PortMappings:
               - ContainerPort: 8080
+            # Valores en SSM Parameter Store (crearlos antes de desplegar):
+            #   /kds/keycloak/db-url, /kds/keycloak/db-password (SecureString),
+            #   /kds/keycloak/hostname, /kds/keycloak/admin-password (SecureString)
+            # ponytail: los secretos se resuelven al desplegar y quedan en texto plano en la task definition;
+            # pasar a `Secrets: ValueFrom` + ExecutionRoleArn si la cuenta la comparte más gente.
             Environment:
               - Name: KC_DB
                 Value: postgres
               - Name: KC_DB_URL
-                Value: jdbc:postgresql://YOUR_RDS_ENDPOINT:5432/keycloak
+                Value: ${ssm:/kds/keycloak/db-url}
               - Name: KC_DB_USERNAME
                 Value: keycloak
               - Name: KC_DB_PASSWORD
-                Value: YOUR_DB_PASSWORD
+                Value: ${ssm:/kds/keycloak/db-password}
               - Name: KC_HOSTNAME
-                Value: kds.yourdomain.com
-              - Name: KC_PROXY
-                Value: edge
+                Value: ${ssm:/kds/keycloak/hostname}
+              # KC_PROXY se eliminó en Keycloak 25+; detrás de un balanceador se usa proxy-headers.
+              - Name: KC_PROXY_HEADERS
+                Value: xforwarded
               - Name: KC_HTTP_ENABLED
                 Value: "true"
               - Name: KC_BOOTSTRAP_ADMIN_USERNAME
                 Value: admin
               - Name: KC_BOOTSTRAP_ADMIN_PASSWORD
-                Value: admin123
+                Value: ${ssm:/kds/keycloak/admin-password}
 
     KeycloakService:
       Type: AWS::ECS::Service

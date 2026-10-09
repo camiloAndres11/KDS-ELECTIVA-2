@@ -69,6 +69,13 @@ class TokenInvalidoError(Exception):
         self.detalle = detalle
 
 
+class KeycloakNoDisponibleError(TokenInvalidoError):
+    """Keycloak no respondio: el token puede ser bueno, el problema es NUESTRO (503, no 401)."""
+
+    def __init__(self, detalle: str | None = None) -> None:
+        super().__init__("keycloak_no_disponible", detalle)
+
+
 @dataclass(frozen=True)
 class Usuario:
     """La persona que hizo la peticion, segun lo que dice su token."""
@@ -217,7 +224,7 @@ def verificar_token(token: str) -> Usuario:
         # Si Keycloak esta apagado o no responde, NO es lo mismo que una
         # llave desconocida: lo decimos distinto para poder verlo en el panel.
         if _parece_error_de_conexion(error):
-            raise TokenInvalidoError("keycloak_no_disponible", str(error)) from error
+            raise KeycloakNoDisponibleError(str(error)) from error
         raise TokenInvalidoError("llave_no_encontrada", str(error)) from error
 
     # 2) Verificar firma y contenido.
@@ -242,7 +249,7 @@ def verificar_token(token: str) -> Usuario:
         motivo = MOTIVOS_AMIGABLES.get(type(error).__name__, "token_no_valido")
         raise TokenInvalidoError(motivo) from error
     except Exception as error:  # noqa: BLE001 - por ejemplo, Keycloak apagado
-        raise TokenInvalidoError("keycloak_no_disponible", str(error)) from error
+        raise KeycloakNoDisponibleError(str(error)) from error
 
     usuario = _construir_usuario(claims)
     logger.debug("Token verificado para '%s' con roles %s", usuario.username, usuario.roles_ordenados)

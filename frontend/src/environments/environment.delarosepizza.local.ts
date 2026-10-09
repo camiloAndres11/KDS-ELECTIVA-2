@@ -15,16 +15,12 @@ export const environment: AppEnvironment = {
     background: '#1a1a2e',
   },
   auth: {
-    provider: 'mock',
+    provider: 'keycloak',
     keycloak: {
-      url: 'http://localhost:8080',
+      url: 'http://localhost:8081',
       realm: 'kds-delarosepizza',
       clientId: 'kds-frontend',
     },
     roles: ['KITCHEN_OPERATOR', 'DISPATCHER', 'POS_SYSTEM', 'ADMIN'],
-    mockUsers: [
-      { username: 'admin', password: 'uptc2025', roles: ['ADMIN'] },
-      { username: 'cocinero', password: 'uptc2025', roles: ['KITCHEN_OPERATOR'] },
-    ],
   },
 };

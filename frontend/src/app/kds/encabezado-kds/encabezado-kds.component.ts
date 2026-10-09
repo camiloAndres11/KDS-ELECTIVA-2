@@ -1,6 +1,7 @@
 import { Component, Input, OnDestroy, OnInit, signal, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { KdsStoreService } from '../kds-store.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -17,6 +18,7 @@ export class EncabezadoKdsComponent implements OnInit, OnDestroy {
 
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly store = inject(KdsStoreService);
 
   private readonly ahora = signal(new Date());
   private intervalId?: ReturnType<typeof setInterval>;
@@ -40,6 +42,7 @@ export class EncabezadoKdsComponent implements OnInit, OnDestroy {
   }
 
   salir(): void {
+    this.store.reset();
     this.auth.logout();
     if (environment.auth.provider === 'mock') {
       void this.router.navigate(['/auth/login']);

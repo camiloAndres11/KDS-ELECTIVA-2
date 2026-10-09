@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
+import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -44,6 +45,13 @@ _producer: KafkaProducer | None = None
 # Flask atiende varias peticiones al mismo tiempo (hilos). El candado evita que
 # dos hilos intenten abrir la conexion al mismo tiempo y creen dos productores.
 _candado_conexion = threading.Lock()
+
+# Si Kafka esta caido, no reintentamos conectar en CADA peticion (cada intento
+# bloquea varios segundos): esperamos este tiempo desde el ultimo fallo.
+# ponytail: con Kafka caido, UNA peticion cada 30 s paga KAFKA_SEGUNDOS_ESPERA al reintentar;
+# conectar en un hilo aparte si eso llega a molestar.
+SEGUNDOS_ENTRE_REINTENTOS = 30
+_ultimo_fallo_conexion = float("-inf")
 
 # Formato de fecha comun para todos los eventos.
 # `datetime.now(timezone.utc)` es preferible a `datetime.utcnow()` porque
@@ -87,6 +95,8 @@ def _crear_producer() -> KafkaProducer:
         # Si Kafka no responde, no nos quedamos colgados esperando.
         request_timeout_ms=int(configuracion.segundos_espera_envio * 1000),
         max_block_ms=int(configuracion.segundos_espera_envio * 1000),
+        # kafka-python 3.x espera 30 s por defecto el primer contacto con el broker.
+        bootstrap_timeout_ms=int(configuracion.segundos_espera_envio * 1000),
         # Reconectar solo si el broker estaba arriba y se cae.
         retries=3,
     )
@@ -98,7 +108,7 @@ def obtener_producer() -> KafkaProducer | None:
     Se separa en su propia funcion para que las pruebas puedan reemplazar la
     conexion por una falsa.
     """
-    global _producer
+    global _producer, _ultimo_fallo_conexion
 
     if not config.kafka.habilitado:
         logger.debug("Kafka esta deshabilitado (KAFKA_HABILITADO=false); no se publica.")
@@ -111,10 +121,15 @@ def obtener_producer() -> KafkaProducer | None:
         # Segundo `if`: otro hilo pudo conectarse mientras esperabamos el candado.
         if _producer is not None:
             return _producer
+        if time.monotonic() - _ultimo_fallo_conexion < SEGUNDOS_ENTRE_REINTENTOS:
+            return None
         try:
             _producer = _crear_producer()
         except Exception as error:  # noqa: BLE001 - aqui si queremos ver cualquier fallo
-            logger.error("No se pudo conectar a Kafka: %s", error)
+            _ultimo_fallo_conexion = time.monotonic()
+            logger.error(
+                "No se pudo conectar a Kafka: %s (reintento en %ss)", error, SEGUNDOS_ENTRE_REINTENTOS
+            )
             return None
 
     return _producer
@@ -143,7 +158,9 @@ def publicar_evento(topic: str, evento: dict[str, Any]) -> bool:
                 automaticamente la marca de tiempo y el nombre del servicio.
 
     Devuelve:
-        True si el evento se publico, False si no (Kafka caido o deshabilitado).
+        True si el evento quedo en cola para enviarse, False si no (Kafka caido
+        o deshabilitado). El envio es asincrono: la peticion del usuario NO
+        espera a Kafka. Si el envio falla despues, se registra en el log.
 
     Nunca lanza una excepcion: el objetivo es que un problema de Kafka no
     Rompa la peticion que el usuario esta haciendo.
@@ -158,23 +175,19 @@ def publicar_evento(topic: str, evento: dict[str, Any]) -> bool:
         if producer is None:
             return False
 
-        # `send` es asincrono: devuelve una promesa con el resultado.
-        # `flush` obliga a esperar a que Kafka confirme la escritura.
-        promesa = producer.send(topic, value=cuerpo)
-        producer.flush(timeout=config.kafka.segundos_espera_envio)
-
-        # `get(timeout=...)` levanta excepcion si la escritura fallo.
-        resultado = promesa.get(timeout=config.kafka.segundos_espera_envio)
-        particion = resultado.partition if resultado is not None else "?"
-        desplazamiento = resultado.offset if resultado is not None else "?"
-
-        logger.info(
-            "Evento publicado en '%s' (tipo=%s, particion=%s, offset=%s)",
-            topic,
-            cuerpo.get("tipo", "-"),
-            particion,
-            desplazamiento,
-        )
+        # `send` es asincrono: deja el evento en el buffer y vuelve enseguida.
+        # No hacemos `flush` aqui (bloquearia cada peticion hasta que Kafka
+        # confirme); el buffer se vacia solo, y `cerrar_producer` lo vacia al apagar.
+        tipo = cuerpo.get("tipo", "-")
+        producer.send(topic, value=cuerpo).add_callback(
+            lambda resultado: logger.info(
+                "Evento publicado en '%s' (tipo=%s, particion=%s, offset=%s)",
+                topic,
+                tipo,
+                resultado.partition,
+                resultado.offset,
+            )
+        ).add_errback(lambda error: logger.error("Error al publicar en '%s': %s", topic, error))
         return True
 
     except Exception as error:  # noqa: BLE001 - ver la nota del docstring

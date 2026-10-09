@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/kds/columna-pedidos/columna-pedidos.component.css"],
-  "sourcesContent": [".columna {\n  display: flex;\n  flex-direction: column;\n  min-width: 0;\n  min-height: 0;\n}\n\n.columna-encabezado {\n  display: flex;\n  align-items: baseline;\n  justify-content: space-between;\n  gap: var(--space-2);\n  padding: var(--space-2) var(--space-1) var(--space-3);\n  border-bottom: 1px solid var(--color-border);\n}\n\n.columna-encabezado h2 {\n  font-size: var(--text-md);\n  text-transform: uppercase;\n  letter-spacing: 0.04em;\n  color: var(--color-ink-muted);\n}\n\n.contador {\n  font-family: var(--font-display);\n  font-size: var(--text-md);\n  color: var(--color-ink-faint);\n}\n\n.lista {\n  display: flex;\n  flex-direction: column;\n  gap: var(--space-3);\n  padding: var(--space-3) var(--space-1);\n  overflow-y: auto;\n}\n\n.vacio {\n  color: var(--color-ink-faint);\n  font-size: var(--text-sm);\n  padding: var(--space-4) 0;\n  text-align: center;\n}\n"],
-  "mappings": ";AAAA,CAAC;AACC,WAAS;AACT,kBAAgB;AAChB,aAAW;AACX,cAAY;AACd;AAEA,CAAC;AACC,WAAS;AACT,eAAa;AACb,mBAAiB;AACjB,OAAK,IAAI;AACT,WAAS,IAAI,WAAW,IAAI,WAAW,IAAI;AAC3C,iBAAe,IAAI,MAAM,IAAI;AAC/B;AAEA,CATC,mBASmB;AAClB,aAAW,IAAI;AACf,kBAAgB;AAChB,kBAAgB;AAChB,SAAO,IAAI;AACb;AAEA,CAAC;AACC,eAAa,IAAI;AACjB,aAAW,IAAI;AACf,SAAO,IAAI;AACb;AAEA,CAAC;AACC,WAAS;AACT,kBAAgB;AAChB,OAAK,IAAI;AACT,WAAS,IAAI,WAAW,IAAI;AAC5B,cAAY;AACd;AAEA,CAAC;AACC,SAAO,IAAI;AACX,aAAW,IAAI;AACf,WAAS,IAAI,WAAW;AACxB,cAAY;AACd;",
-  "names": []
-}

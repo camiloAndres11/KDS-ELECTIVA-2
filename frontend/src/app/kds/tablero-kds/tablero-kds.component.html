@@ -4,6 +4,10 @@
   [tiempoRealActivo]="tiempoRealActivo"
 ></app-encabezado-kds>
 
+@if (store.error(); as mensaje) {
+  <p class="aviso-error" role="alert">{{ mensaje }}</p>
+}
+
 <main class="tablero">
   <app-columna-pedidos
     titulo="Pendientes"

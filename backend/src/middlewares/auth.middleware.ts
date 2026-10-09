@@ -73,8 +73,8 @@ export function authenticate(verify?: TokenVerifier): RequestHandler {
       res.locals.principal = OPEN;
       return next();
     }
-    const [scheme, token] = (req.headers.authorization ?? '').split(' ');
-    if (scheme?.toLowerCase() !== 'bearer' || !token) throw new UnauthorizedError('Falta el token Bearer');
+    const token = /^Bearer\s+(\S+)\s*$/i.exec(req.headers.authorization ?? '')?.[1];
+    if (!token) throw new UnauthorizedError('Falta el token Bearer');
     res.locals.principal = await verify(token);
     next();
   };

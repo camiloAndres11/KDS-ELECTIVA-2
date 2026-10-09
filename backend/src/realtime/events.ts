@@ -12,6 +12,7 @@ export interface StatusChangedEvent {
 export interface PriorityChangedEvent {
   orderId: string;
   priority: OrderPriority;
+  version: number;
 }
 
 /** A dónde manda el servicio de pedidos sus eventos de dominio. Socket.IO es una implementación; los tests usan otra. */

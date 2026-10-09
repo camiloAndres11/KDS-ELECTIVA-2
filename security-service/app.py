@@ -18,7 +18,7 @@ Como probarlo:
       -d "username=cocina" -d "password=cocina123"
 
     # 2. Usar ese token
-    curl http://localhost:8080/api/v1/pedidos -H "Authorization: Bearer <TOKEN>"
+    curl http://localhost:5000/api/v1/pedidos -H "Authorization: Bearer <TOKEN>"
 """
 
 from __future__ import annotations
@@ -144,13 +144,15 @@ def crear_aplicacion() -> Flask:
         cuerpo = request.get_json(silent=True) or {}
         codigo = cuerpo.get("codigo") or f"#P-{uuid.uuid4().hex[:4].upper()}"
         canal = cuerpo.get("canal") or "DINE_IN"
+        # Un solo id: el del evento y el de la respuesta deben poder cruzarse.
+        pedido_id = str(uuid.uuid4())
 
         # Aqui se llamaria al backend de pedidos para guardarlo de verdad.
         # Registramos el evento para que quede en el historial de Kafka.
         publicar_evento(
             eventos.TOPIC_PEDIDOS,
             eventos.evento_pedido_creado(
-                pedido_id=str(uuid.uuid4()),
+                pedido_id=pedido_id,
                 codigo=codigo,
                 canal=canal,
                 usuario=g.usuario.username,
@@ -160,7 +162,7 @@ def crear_aplicacion() -> Flask:
         return (
             jsonify(
                 {
-                    "id": str(uuid.uuid4()),
+                    "id": pedido_id,
                     "codigo": codigo,
                     "canal": canal,
                     "creado_por": g.usuario.username,

@@ -61,6 +61,28 @@
       "attributes": {
         "post.logout.redirect.uris": "http://localhost:5000/*"
       }
+    },
+    {
+      "clientId": "kds-frontend",
+      "name": "KDS Frontend (Angular)",
+      "description": "Cliente publico del frontend: login con redireccion + PKCE. Sin password grant.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*"
+      }
     }
   ],
 

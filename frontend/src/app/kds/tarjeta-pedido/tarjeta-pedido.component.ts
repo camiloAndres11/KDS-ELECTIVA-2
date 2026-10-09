@@ -22,7 +22,7 @@ export interface AccionColumna {
 })
 export class TarjetaPedidoComponent {
   @Input({ required: true }) pedido!: Order;
-  @Input({ required: true }) accion!: AccionColumna;
+  @Input({ required: true }) accion!: AccionColumna | null;
   @Output() cambiarEstado = new EventEmitter<OrderStatus>();
 
   get canalEtiqueta(): string {

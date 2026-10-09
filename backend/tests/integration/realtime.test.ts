@@ -60,4 +60,19 @@ describe('Difusión en tiempo real (Socket.IO)', () => {
     expect(payload.previousStatus).toBe('PENDING');
     expect(payload.newStatus).toBe('IN_PREPARATION');
   });
+
+  it('order:priority_changed incluye la versión nueva (B7)', async () => {
+    const created = await request(baseUrl)
+      .post('/api/v1/orders')
+      .send({ displayCode: '#P-3', channel: 'DINE_IN', items: [{ productName: 'Pizza', quantity: 1 }] })
+      .expect(201);
+
+    const eventPromise = new Promise((resolve) => client.once('order:priority_changed', resolve));
+    await request(baseUrl)
+      .patch(`/api/v1/kitchen/orders/${created.body.id}/priority`)
+      .send({ priority: 'VIP', version: 1 })
+      .expect(200);
+
+    expect(await eventPromise).toMatchObject({ priority: 'VIP', version: 2 });
+  });
 });

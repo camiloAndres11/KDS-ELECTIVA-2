@@ -47,7 +47,7 @@ from flask import Flask, current_app, g, jsonify, request
 
 import eventos
 from config import config
-from keycloak_service import TokenInvalidoError, Usuario, verificar_token
+from keycloak_service import KeycloakNoDisponibleError, TokenInvalidoError, Usuario, verificar_token
 from kafka_producer import publicar_evento
 
 logger = logging.getLogger(__name__)
@@ -98,7 +98,7 @@ def _extraer_token() -> str | None:
     cabecera = request.headers.get(CABECERA_AUTORIZACION, "")
     if not cabecera:
         return None
-    if not cabecera.startswith(PREFIJO_BEARER):
+    if not cabecera.lower().startswith(PREFIJO_BEARER.lower()):
         return None
     token = cabecera[len(PREFIJO_BEARER) :].strip()
     return token or None
@@ -164,6 +164,13 @@ def registrar_middleware(app: Flask) -> None:
                 eventos.TOPIC_SEGURIDAD,
                 eventos.evento_token_invalido(endpoint, metodo, ip, error.motivo),
             )
+            # Keycloak caido no es culpa del cliente: 503 para que NO tire un token que puede ser bueno.
+            if isinstance(error, KeycloakNoDisponibleError):
+                return _respuesta_error(
+                    503,
+                    error.motivo,
+                    "No se pudo validar el token: Keycloak no responde. Intenta de nuevo.",
+                )
             # 401 con `WWW-Authenticate` es lo que dice el estandar OAuth2.
             return _respuesta_error(
                 401,
@@ -210,11 +217,14 @@ def requiere_rol(*roles_requeridos: str) -> Callable[[F], F]:
     def envoltura(funcion: F) -> F:
         @wraps(funcion)
         def interna(*args: Any, **kwargs: Any) -> Any:
-            # Puede pasar que el middleware este apagado: en ese caso no hay
-            # `g.usuario` y no hay nada que comprobar.
+            # Solo con la seguridad APAGADA se deja pasar sin usuario. Si falta
+            # `g.usuario` por cualquier otro motivo (ruta marcada como publica,
+            # middleware sin registrar) se cierra la puerta: 401.
+            if not current_app.config.get("AUTH_HABILITADO", True):
+                return funcion(*args, **kwargs)
             usuario: Usuario | None = getattr(g, "usuario", None)
             if usuario is None:
-                return funcion(*args, **kwargs)
+                return _respuesta_error(401, "token_requerido", "Esta ruta necesita un token de Keycloak.")
 
             if usuario.tiene_algun_rol(roles_requeridos):
                 return funcion(*args, **kwargs)

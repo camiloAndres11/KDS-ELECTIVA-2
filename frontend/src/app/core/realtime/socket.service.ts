@@ -22,6 +22,13 @@ export class SocketService {
     });
     this.socket.on('connect', () => this.connected.set(true));
     this.socket.on('disconnect', () => this.connected.set(false));
+    // Si el middleware del servidor rechaza el handshake (p. ej. token vencido), socket.io NO reintenta solo.
+    this.socket.on('connect_error', () => {
+      const socket = this.socket;
+      if (socket && !socket.active) {
+        setTimeout(() => socket.connect(), 5000);
+      }
+    });
   }
 
   disconnect(): void {

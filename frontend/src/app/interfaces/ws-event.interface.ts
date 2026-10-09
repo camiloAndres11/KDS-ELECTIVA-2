@@ -12,6 +12,7 @@ export interface StatusChangedEvent {
 export interface PriorityChangedEvent {
   orderId: string;
   priority: OrderPriority;
+  version: number;
 }
 
 export interface CancelledEvent {

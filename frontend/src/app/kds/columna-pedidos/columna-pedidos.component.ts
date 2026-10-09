@@ -17,6 +17,7 @@ export interface CambioEstado {
 export class ColumnaPedidosComponent {
   @Input({ required: true }) titulo!: string;
   @Input({ required: true }) pedidos!: Order[];
-  @Input({ required: true }) accion!: AccionColumna;
+  /** null = el usuario no puede operar: se muestran las tarjetas sin botón. */
+  @Input({ required: true }) accion!: AccionColumna | null;
   @Output() cambiarEstado = new EventEmitter<CambioEstado>();
 }

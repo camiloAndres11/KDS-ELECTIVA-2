@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["src/app/kds/tablero-kds/tablero-kds.component.css"],
-  "sourcesContent": [":host {\n  display: block;\n  height: 100%;\n}\n\n.tablero {\n  display: grid;\n  grid-template-columns: repeat(3, minmax(0, 1fr));\n  gap: var(--space-4);\n  padding: var(--space-4) var(--space-6);\n  height: calc(100% - 76px);\n  overflow: hidden;\n}\n\n@media (max-width: 768px) {\n  .tablero {\n    grid-template-columns: minmax(0, 1fr);\n    height: auto;\n    overflow: visible;\n  }\n}\n"],
-  "mappings": ";AAAA;AACE,WAAS;AACT,UAAQ;AACV;AAEA,CAAC;AACC,WAAS;AACT,yBAAuB,OAAO,CAAC,EAAE,OAAO,CAAC,EAAE;AAC3C,OAAK,IAAI;AACT,WAAS,IAAI,WAAW,IAAI;AAC5B,UAAQ,KAAK,KAAK,EAAE;AACpB,YAAU;AACZ;AAEA,QAAO,WAAY;AACjB,GAVD;AAWG,2BAAuB,OAAO,CAAC,EAAE;AACjC,YAAQ;AACR,cAAU;AACZ;AACF;",
-  "names": []
-}

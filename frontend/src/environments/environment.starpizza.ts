@@ -4,7 +4,7 @@ export const environment: AppEnvironment = {
   production: true,
   tenant: 'starpizza',
   displayName: 'StarPizza',
-  apiUrl: 'https://api.starpizza.kds.example.com',
+  apiUrl: 'https://fy4meajzqd.execute-api.us-east-1.amazonaws.com',
   warningMinutes: 15,
   criticalMinutes: 25,
   realtimeEnabled: false,
@@ -17,7 +17,7 @@ export const environment: AppEnvironment = {
   auth: {
     provider: 'keycloak',
     keycloak: {
-      url: 'https://auth.starpizza.kds.example.com',
+      url: 'https://d34c6bytkv46ib.cloudfront.net',
       realm: 'kds-starpizza',
       clientId: 'kds-frontend',
     },

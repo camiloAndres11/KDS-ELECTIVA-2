@@ -2,3 +2,8 @@ node_modules/
 dist/
 .env
 .env.*
+
+# Variables de entorno reales por empresa (los .example sí se versionan)
+.env.*
+!.env.*.example
+!.env.example

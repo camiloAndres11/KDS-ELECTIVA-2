@@ -1,0 +1,160 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Keycloak para el KDS en ECS Fargate. Internet -> CloudFront (HTTPS gratis, dominio *.cloudfront.net)
+  -> ALB (solo acepta CloudFront) -> tarea Fargate. Se despliega con scripts/deploy-keycloak-aws.mjs.
+
+Parameters:
+  VpcId: { Type: 'AWS::EC2::VPC::Id' }
+  SubnetIds: { Type: 'List<AWS::EC2::Subnet::Id>', Description: 'Subredes publicas en al menos 2 zonas' }
+  CloudFrontPrefixListId: { Type: String, Description: 'com.amazonaws.global.cloudfront.origin-facing' }
+  AdminPassword: { Type: String, NoEcho: true, MinLength: 12 }
+  KeycloakUrl: { Type: String, Default: 'https://pendiente.invalid', Description: 'URL publica (la del CloudFront). Se conoce tras la fase 1.' }
+  DesiredCount: { Type: Number, Default: 0 }
+
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties: { LogGroupName: /ecs/kds-keycloak, RetentionInDays: 7 }
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties: { ClusterName: kds-keycloak }
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - { Effect: Allow, Principal: { Service: ecs-tasks.amazonaws.com }, Action: 'sts:AssumeRole' }
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  AlbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ALB de Keycloak - solo desde CloudFront
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 80, ToPort: 80, SourcePrefixListId: !Ref CloudFrontPrefixListId }
+
+  TaskSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Tarea Keycloak - solo desde el ALB
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 8080, ToPort: 8080, SourceSecurityGroupId: !Ref AlbSecurityGroup }
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: kds-keycloak
+      Scheme: internet-facing
+      Type: application
+      Subnets: !Ref SubnetIds
+      SecurityGroups: [!Ref AlbSecurityGroup]
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !Ref VpcId
+      TargetType: ip
+      Protocol: HTTP
+      Port: 8080
+      HealthCheckPath: /realms/master
+      HealthCheckIntervalSeconds: 30
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 5
+      Matcher: { HttpCode: '200' }
+      TargetGroupAttributes:
+        - { Key: deregistration_delay.timeout_seconds, Value: '30' }
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - { Type: forward, TargetGroupArn: !Ref TargetGroup }
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: KDS Keycloak
+        HttpVersion: http2
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: alb
+            DomainName: !GetAtt LoadBalancer.DNSName
+            CustomOriginConfig: { OriginProtocolPolicy: http-only, HTTPPort: 80 }
+        DefaultCacheBehavior:
+          TargetOriginId: alb
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS, PUT, POST, PATCH, DELETE]
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad          # Managed-CachingDisabled
+          OriginRequestPolicyId: 216adef6-5c7f-47e4-b989-5492eafa07d3  # Managed-AllViewer (reenvia Host y cookies)
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: kds-keycloak
+      RequiresCompatibilities: [FARGATE]
+      NetworkMode: awsvpc
+      Cpu: '1024'
+      Memory: '2048'
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: keycloak
+          Image: quay.io/keycloak/keycloak:26.1.4
+          Essential: true
+          PortMappings: [{ ContainerPort: 8080 }]
+          EntryPoint: [/bin/bash, -c]
+          # ponytail: start-dev con la BD H2 dentro del contenedor. Los realms se reimportan en cada arranque desde
+          # las variables REALM_*; los usuarios creados a mano en la consola se pierden al reiniciar la tarea.
+          # Cuando haga falta persistencia: RDS Postgres + KC_DB=postgres y comando `start`.
+          Command:
+            - |
+              mkdir -p /opt/keycloak/data/import
+              echo "$REALM_STARPIZZA" | base64 -d > /opt/keycloak/data/import/kds-starpizza-realm.json
+              echo "$REALM_DELAROSEPIZZA" | base64 -d > /opt/keycloak/data/import/kds-delarosepizza-realm.json
+              exec /opt/keycloak/bin/kc.sh start-dev --import-realm
+          Environment:
+            - { Name: KC_HOSTNAME, Value: !Ref KeycloakUrl }
+            - { Name: KC_HTTP_ENABLED, Value: 'true' }
+            - { Name: KC_PROXY_HEADERS, Value: xforwarded }
+            - { Name: KC_BOOTSTRAP_ADMIN_USERNAME, Value: admin }
+            # ponytail: visible en la task definition para quien tenga acceso a la consola de ECS; pasar a Secrets Manager si se comparte la cuenta.
+            - { Name: KC_BOOTSTRAP_ADMIN_PASSWORD, Value: !Ref AdminPassword }
+            - { Name: REALM_STARPIZZA, Value: '__REALM_STARPIZZA__' }
+            - { Name: REALM_DELAROSEPIZZA, Value: '__REALM_DELAROSEPIZZA__' }
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: keycloak
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: Listener
+    Properties:
+      ServiceName: kds-keycloak
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      HealthCheckGracePeriodSeconds: 240
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED   # necesario para bajar la imagen de quay.io sin NAT
+          Subnets: !Ref SubnetIds
+          SecurityGroups: [!Ref TaskSecurityGroup]
+      LoadBalancers:
+        - { ContainerName: keycloak, ContainerPort: 8080, TargetGroupArn: !Ref TargetGroup }
+
+Outputs:
+  CloudFrontDomain: { Value: !GetAtt Distribution.DomainName }

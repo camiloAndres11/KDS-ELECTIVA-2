@@ -54,13 +54,34 @@ def test_respeta_un_timestamp_puesto_por_el_llamador(productor_falso) -> None:
     assert productor.enviados[0][1]["timestamp"] == fijo
 
 
-def test_hace_flush_para_asegurar_la_escritura(productor_falso) -> None:
-    """Sin `flush` el evento podria quedarse en el buffer al apagar."""
+def test_no_bloquea_la_peticion_esperando_a_kafka(productor_falso) -> None:
+    """S3: publicar no hace `flush` (eso lo hace `cerrar_producer` al apagar)."""
     productor = productor_falso()
 
     publicar_evento("seguridad.accesos", {"tipo": "x"})
 
-    assert productor.flusheos == 1
+    assert productor.flusheos == 0
+
+
+def test_con_kafka_caido_no_reintenta_en_cada_peticion(monkeypatch: pytest.MonkeyPatch) -> None:
+    """S3: tras un fallo de conexion se espera antes de volver a intentar."""
+    intentos = []
+
+    def conectar_falla():
+        intentos.append(1)
+        raise RuntimeError("NoBrokersAvailable (simulado)")
+
+    monkeypatch.setattr(kafka_producer, "_producer", None)
+    monkeypatch.setattr(kafka_producer, "_ultimo_fallo_conexion", float("-inf"))
+    monkeypatch.setattr(kafka_producer, "_crear_producer", conectar_falla)
+    monkeypatch.setenv("KAFKA_HABILITADO", "true")
+    from config import recargar_configuracion
+
+    recargar_configuracion()
+
+    assert kafka_producer.obtener_producer() is None
+    assert kafka_producer.obtener_producer() is None
+    assert len(intentos) == 1
 
 
 def test_devuelve_false_si_no_hay_conexion(monkeypatch: pytest.MonkeyPatch) -> None:

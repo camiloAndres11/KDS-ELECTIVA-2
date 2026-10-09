@@ -16,3 +16,6 @@ export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
 export function statusesThatCanReach(to: OrderStatus): OrderStatus[] {
   return (Object.keys(TRANSITIONS) as OrderStatus[]).filter((from) => canTransition(from, to));
 }
+
+/** Estados que aún admiten cambios (no finales). Son los que muestra el KDS. */
+export const ACTIVE_STATUSES = (Object.keys(TRANSITIONS) as OrderStatus[]).filter((s) => TRANSITIONS[s].length > 0);

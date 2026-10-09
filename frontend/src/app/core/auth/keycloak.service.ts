@@ -22,7 +22,11 @@ export class KeycloakService {
     return this.keycloak.init({
       onLoad: 'check-sso',
       pkceMethod: 'S256',
-      silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
+      // Con Keycloak en otro sitio (AWS) el navegador bloquea las cookies de terceros del iframe de sesión, que responde
+      // "changed"; keycloak-js borra entonces el refresh token y el refresco falla en bucle. La sesión la validan el refresh y el backend.
+      checkLoginIframe: false,
+      // Sin silentCheckSsoRedirectUri el check-sso es una redirección normal (prompt=none): funciona aunque el navegador
+      // bloquee las cookies de terceros, que es lo que rompe al iframe silencioso cuando Keycloak está en otro sitio.
     });
   }
 
@@ -36,6 +40,15 @@ export class KeycloakService {
 
   isAuthenticated(): boolean {
     return this.keycloak.authenticated ?? false;
+  }
+
+  /** Refresca el token si le quedan menos de `minSegundos`. Si falla, la sesión SSO murió: vuelve al login. */
+  async actualizarToken(minSegundos: number): Promise<void> {
+    try {
+      await this.keycloak.updateToken(minSegundos);
+    } catch {
+      await this.keycloak.login();
+    }
   }
 
   token(): string | undefined {

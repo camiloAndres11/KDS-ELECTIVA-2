@@ -21,6 +21,7 @@ con --desde-inicio vuelve a leerlos todos.
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import logging
 import sys
@@ -135,9 +136,8 @@ def main() -> int:
     leidos = 0
 
     try:
-        for mensaje in consumidor:
-            if leidos >= argumentos.max:
-                break
+        # `islice` corta ANTES de pedir el mensaje max+1: asi no se consume uno de mas.
+        for mensaje in itertools.islice(consumidor, argumentos.max):
             leidos += 1
             try:
                 tipo = json.loads(mensaje.value.decode("utf-8")).get("tipo", "(sin tipo)")
